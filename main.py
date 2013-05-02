@@ -16,7 +16,6 @@ ENV = jinja2.Environment(
     loader=jinja2.FileSystemLoader(TEMPLATE_DIR),
     autoescape=True
 )
-
 CONSUMER_KEY = '6GuIfrWPKuAp7UDMT17GA'
 CONSUMER_SECRET = '6IqWHpS3MkU2XsnIzehvfctTHnqEs3hOPWFznijRzG4'
 if os.environ.get('SERVER_SOFTWARE', '').startswith('Dev'):
@@ -106,7 +105,7 @@ class Index(BaseHandler):
 
         self.render_template('index.html', {
             'collection': collection,
-            'me': auth_api.me().name,
+            'me': auth_api.me(),
             'logout_url': users.create_logout_url('/')})
 
 

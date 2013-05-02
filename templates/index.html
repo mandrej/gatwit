@@ -9,17 +9,13 @@
 </head>
 <body>
     <h1>gatwit <a href="{{ logout_url }}">logout</a></h1>
-    <p>{{ me }} home time line</p>
+    <p>{{ me.screen_name }} home time line</p>
     {% for status in collection %}
         <p>
             <img src="{{ status.user.profile_image_url }}">
             {{ status.created_at }}:
-            {% if status.user.url %}
-                <a href="{{ status.user.url }}">@{{ status.user.name }}</a>
-            {% else %}
-                @{{ status.user.name }}
-            {% endif %}
-            <br>{{ status.text|urlize }}
+            <a href="https://twitter.com/{{ status.user.screen_name }}">@{{ status.user.screen_name }}</a>
+            <br>{{ status.source }}: {{ status.text|urlize }}
         </p>
     {% endfor %}
 </body>
