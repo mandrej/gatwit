@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>gatwit</title>
+</head>
+<body>
+    <h1>gatwit <a href="{{ logout_url }}">logout</a></h1>
+    <p>{{ me }} home time line</p>
+    {% for status in collection %}
+        <p>
+            {{ status.created_at }}: {{ status.author.screen_name }}<br>
+            {{ status.source }}
+        </p>
+    {% endfor %}
+</body>
+</html>

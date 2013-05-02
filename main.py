@@ -42,34 +42,6 @@ class BaseHandler(webapp2.RequestHandler):
         self.response.write(json.dumps(data))
 
 
-class MainPage(BaseHandler):
-    @login_required
-    def get(self):
-        self.render_template('home.html', {
-            "user": self.user,
-            "logout_url": users.create_logout_url('/')})
-
-
-class RequestAuthorization(BaseHandler):
-    @login_required
-    def get(self):
-        # Build a new oauth handler and display authorization url to user.
-        auth = tweepy.OAuthHandler(CONSUMER_KEY, CONSUMER_SECRET, CALLBACK)
-        auth_url = auth.get_authorization_url()
-        # We must store the request token for later use in the callback page.
-        request_token = OAuthToken.get_or_insert(
-            auth.request_token.key,
-            token_key=auth.request_token.key,
-            token_secret=auth.request_token.secret
-        )
-        # request_token = OAuthToken(
-        #     token_key=auth.request_token.key,
-        #     token_secret=auth.request_token.secret,
-        # )
-        request_token.put()
-        self.redirect(auth_url)
-
-
 class CallbackPage(BaseHandler):
     def get(self):
         oauth_token = self.request.get("oauth_token", None)
@@ -80,7 +52,6 @@ class CallbackPage(BaseHandler):
 
         # Lookup the request token
         request_token = OAuthToken.get_by_id(oauth_token)
-        # request_token = OAuthToken.gql("WHERE token_key = :key", key=oauth_token).get()
         if request_token is None:
             # We do not seem to have this request token, show an error.
             self.render_template('error.html', {"message": 'Invalid token!'})
@@ -102,32 +73,41 @@ class CallbackPage(BaseHandler):
         request_token.oauth_verifier = oauth_verifier
         request_token.put()
 
-        self.redirect('/home')
+        self.redirect('/')
 
 
-class Home(BaseHandler):
+class Index(BaseHandler):
     @login_required
     def get(self):
-        dbauth = OAuthToken.query(OAuthToken.user == self.user, OAuthToken.access_key != None).get()
+        dbauth = OAuthToken.query(OAuthToken.user == self.user).get()
+        if dbauth is None or dbauth.access_key is None:
+            # Build a new oauth handler and display authorization url to user.
+            auth = tweepy.OAuthHandler(CONSUMER_KEY, CONSUMER_SECRET, CALLBACK)
+            auth_url = auth.get_authorization_url()
+            # We must store the request token for later use in the callback page.
+            request_token = OAuthToken.get_or_insert(
+                auth.request_token.key,
+                token_key=auth.request_token.key,
+                token_secret=auth.request_token.secret
+            )
+            request_token.put()
+            return self.redirect(auth_url)
+
         auth = tweepy.OAuthHandler(CONSUMER_KEY, CONSUMER_SECRET)
-        auth.set_request_token(dbauth.key.id(), dbauth.token_secret)
+        auth.set_request_token(dbauth.token_key, dbauth.token_secret)
         auth.set_access_token(dbauth.access_key, dbauth.access_secret)
 
         auth_api = tweepy.API(auth)
         me = auth_api.me()
-        page_list = []  # auth_api.friends(me)
-        for page in tweepy.Cursor(auth_api.home_timeline, count=30).pages(2):
-            page_list.append(page)
+        collection = auth_api.home_timeline()
 
-        self.render_template('twitter_home.html', {
-            'collection': page_list,
+        self.render_template('index.html', {
+            'collection': collection,
             'me': me.screen_name,
             'logout_url': users.create_logout_url('/')})
 
 
 app = WSGIApplication([
-    (r'/', MainPage),
-    (r'/oauth', RequestAuthorization ),
+    (r'/', Index),
     (r'/oauth/callback', CallbackPage),
-    (r'/home', Home),
 ], debug=True)
