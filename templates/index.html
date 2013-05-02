@@ -2,14 +2,24 @@
 <html>
 <head>
     <title>gatwit</title>
+    <style type="text/css">
+        body { font-family: sans-serif; }
+        p img { float: left; margin-right: 0.5em; }
+    </style>
 </head>
 <body>
     <h1>gatwit <a href="{{ logout_url }}">logout</a></h1>
     <p>{{ me }} home time line</p>
     {% for status in collection %}
         <p>
-            {{ status.created_at }}: {{ status.author.screen_name }}<br>
-            {{ status.source }}
+            <img src="{{ status.user.profile_image_url }}">
+            {{ status.created_at }}:
+            {% if status.user.url %}
+                <a href="{{ status.user.url }}">@{{ status.user.name }}</a>
+            {% else %}
+                @{{ status.user.name }}
+            {% endif %}
+            <br>{{ status.text|urlize }}
         </p>
     {% endfor %}
 </body>

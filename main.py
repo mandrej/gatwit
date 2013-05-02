@@ -9,9 +9,7 @@ from google.appengine.api import users
 from webapp2 import WSGIApplication
 from webapp2_extras.jinja2 import get_jinja2
 from webapp2_extras.appengine.users import login_required
-from models import OAuthToken
-
-import logging
+from models import UserCredentials
 
 TEMPLATE_DIR = os.path.join(os.path.dirname(__file__), 'templates')
 ENV = jinja2.Environment(
@@ -21,7 +19,10 @@ ENV = jinja2.Environment(
 
 CONSUMER_KEY = '6GuIfrWPKuAp7UDMT17GA'
 CONSUMER_SECRET = '6IqWHpS3MkU2XsnIzehvfctTHnqEs3hOPWFznijRzG4'
-CALLBACK = 'http://gatwitbot.appspot.com/oauth/callback'
+if os.environ.get('SERVER_SOFTWARE', '').startswith('Dev'):
+    CALLBACK = 'http://127.0.0.1:8080/oauth/callback'
+else:
+    CALLBACK = 'http://gatwitbot.appspot.com/oauth/callback'
 
 
 class BaseHandler(webapp2.RequestHandler):
@@ -42,6 +43,20 @@ class BaseHandler(webapp2.RequestHandler):
         self.response.write(json.dumps(data))
 
 
+class RequestAutorization(BaseHandler):
+    def get(self):
+        # Build a new oauth handler and display authorization url to user.
+        auth = tweepy.OAuthHandler(CONSUMER_KEY, CONSUMER_SECRET, CALLBACK)
+        auth_url = auth.get_authorization_url()
+        stored_credentials = UserCredentials.get_or_insert(
+            auth.request_token.key,
+            token_key=auth.request_token.key,
+            token_secret=auth.request_token.secret
+        )
+        stored_credentials.put()
+        self.redirect(auth_url)
+
+
 class CallbackPage(BaseHandler):
     def get(self):
         oauth_token = self.request.get("oauth_token", None)
@@ -51,14 +66,14 @@ class CallbackPage(BaseHandler):
             self.render_template('error.html', {"message": 'Missing required parameters!'})
 
         # Lookup the request token
-        request_token = OAuthToken.get_by_id(oauth_token)
-        if request_token is None:
+        stored_credentials = UserCredentials.get_by_id(oauth_token)
+        if stored_credentials is None:
             # We do not seem to have this request token, show an error.
-            self.render_template('error.html', {"message": 'Invalid token!'})
+            self.render_template('error.html', {"message": 'No credentials'})
 
         # Rebuild the auth handler
         auth = tweepy.OAuthHandler(CONSUMER_KEY, CONSUMER_SECRET)
-        auth.set_request_token(request_token.token_key, request_token.token_secret)
+        auth.set_request_token(stored_credentials.token_key, stored_credentials.token_secret)
 
         # Fetch the access token
         try:
@@ -67,47 +82,36 @@ class CallbackPage(BaseHandler):
             # Failed to get access token
             self.render_template('error.html', {"message": e})
 
-        request_token.access_key = auth.access_token.key
-        request_token.access_secret = auth.access_token.secret
-        request_token.oauth_token = oauth_token
-        request_token.oauth_verifier = oauth_verifier
-        request_token.put()
-
+        stored_credentials.access_key = auth.access_token.key
+        stored_credentials.access_secret = auth.access_token.secret
+        stored_credentials.oauth_token = oauth_token
+        stored_credentials.oauth_verifier = oauth_verifier
+        stored_credentials.put()
         self.redirect('/')
 
 
 class Index(BaseHandler):
     @login_required
     def get(self):
-        dbauth = OAuthToken.query(OAuthToken.user == self.user).get()
-        if dbauth is None or dbauth.access_key is None:
-            # Build a new oauth handler and display authorization url to user.
-            auth = tweepy.OAuthHandler(CONSUMER_KEY, CONSUMER_SECRET, CALLBACK)
-            auth_url = auth.get_authorization_url()
-            # We must store the request token for later use in the callback page.
-            request_token = OAuthToken.get_or_insert(
-                auth.request_token.key,
-                token_key=auth.request_token.key,
-                token_secret=auth.request_token.secret
-            )
-            request_token.put()
-            return self.redirect(auth_url)
+        stored_credentials = UserCredentials.query(UserCredentials.user == self.user).get()
+        if stored_credentials is None:
+            return self.redirect('/oauth')
 
         auth = tweepy.OAuthHandler(CONSUMER_KEY, CONSUMER_SECRET)
-        auth.set_request_token(dbauth.token_key, dbauth.token_secret)
-        auth.set_access_token(dbauth.access_key, dbauth.access_secret)
+        auth.set_request_token(stored_credentials.token_key, stored_credentials.token_secret)
+        auth.set_access_token(stored_credentials.access_key, stored_credentials.access_secret)
 
         auth_api = tweepy.API(auth)
-        me = auth_api.me()
-        collection = auth_api.home_timeline()
+        collection = auth_api.home_timeline(count=10)
 
         self.render_template('index.html', {
             'collection': collection,
-            'me': me.screen_name,
+            'me': auth_api.me().name,
             'logout_url': users.create_logout_url('/')})
 
 
 app = WSGIApplication([
     (r'/', Index),
+    (r'/oauth', RequestAutorization),
     (r'/oauth/callback', CallbackPage),
 ], debug=True)
