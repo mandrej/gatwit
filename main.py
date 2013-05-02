@@ -5,6 +5,7 @@ import json
 import webapp2
 import jinja2
 import tweepy
+import logging
 from google.appengine.api import users
 from webapp2 import WSGIApplication
 from webapp2_extras.jinja2 import get_jinja2
@@ -42,17 +43,17 @@ class BaseHandler(webapp2.RequestHandler):
         self.response.write(json.dumps(data))
 
 
-class RequestAutorization(BaseHandler):
+class RequestAuthorization(BaseHandler):
     def get(self):
         # Build a new oauth handler and display authorization url to user.
         auth = tweepy.OAuthHandler(CONSUMER_KEY, CONSUMER_SECRET, CALLBACK)
         auth_url = auth.get_authorization_url()
-        stored_credentials = UserCredentials.get_or_insert(
+        credentials = UserCredentials.get_or_insert(
             auth.request_token.key,
             token_key=auth.request_token.key,
             token_secret=auth.request_token.secret
         )
-        stored_credentials.put()
+        credentials.put()
         self.redirect(auth_url)
 
 
@@ -65,14 +66,14 @@ class CallbackPage(BaseHandler):
             self.render_template('error.html', {"message": 'Missing required parameters!'})
 
         # Lookup the request token
-        stored_credentials = UserCredentials.get_by_id(oauth_token)
-        if stored_credentials is None:
+        credentials = UserCredentials.get_by_id(oauth_token)
+        if credentials is None:
             # We do not seem to have this request token, show an error.
             self.render_template('error.html', {"message": 'No credentials'})
 
         # Rebuild the auth handler
         auth = tweepy.OAuthHandler(CONSUMER_KEY, CONSUMER_SECRET)
-        auth.set_request_token(stored_credentials.token_key, stored_credentials.token_secret)
+        auth.set_request_token(credentials.token_key, credentials.token_secret)
 
         # Fetch the access token
         try:
@@ -81,36 +82,42 @@ class CallbackPage(BaseHandler):
             # Failed to get access token
             self.render_template('error.html', {"message": e})
 
-        stored_credentials.access_key = auth.access_token.key
-        stored_credentials.access_secret = auth.access_token.secret
-        stored_credentials.oauth_token = oauth_token
-        stored_credentials.oauth_verifier = oauth_verifier
-        stored_credentials.put()
+        credentials.access_key = auth.access_token.key
+        credentials.access_secret = auth.access_token.secret
+        credentials.oauth_token = oauth_token
+        credentials.oauth_verifier = oauth_verifier
+        credentials.put()
         self.redirect('/')
 
 
 class Index(BaseHandler):
     @login_required
     def get(self):
-        stored_credentials = UserCredentials.query(UserCredentials.user == self.user).get()
-        if stored_credentials is None:
+        message = None
+        credentials = UserCredentials.query(UserCredentials.user == self.user).get()
+        if credentials is None:
+            logging.info('RequestAuthorization')
             return self.redirect('/oauth')
 
         auth = tweepy.OAuthHandler(CONSUMER_KEY, CONSUMER_SECRET)
-        auth.set_request_token(stored_credentials.token_key, stored_credentials.token_secret)
-        auth.set_access_token(stored_credentials.access_key, stored_credentials.access_secret)
+        auth.set_request_token(credentials.token_key, credentials.token_secret)
+        auth.set_access_token(credentials.access_key, credentials.access_secret)
 
         auth_api = tweepy.API(auth)
-        collection = auth_api.home_timeline(count=10)
-
-        self.render_template('index.html', {
-            'collection': collection,
-            'me': auth_api.me(),
-            'logout_url': users.create_logout_url('/')})
+        try:
+            collection = auth_api.home_timeline(count=10)
+        except tweepy.TweepError, message:
+            pass
+        else:
+            self.render_template('index.html', {
+                'collection': collection,
+                'message': message,
+                'me': auth_api.me(),
+                'logout_url': users.create_logout_url('/')})
 
 
 app = WSGIApplication([
     (r'/', Index),
-    (r'/oauth', RequestAutorization),
+    (r'/oauth', RequestAuthorization),
     (r'/oauth/callback', CallbackPage),
 ], debug=True)

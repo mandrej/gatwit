@@ -1,15 +1,18 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>gatwit</title>
+    <title>GATWIT</title>
     <style type="text/css">
         body { font-family: sans-serif; }
         p img { float: left; margin-right: 0.5em; }
     </style>
 </head>
 <body>
-    <h1>gatwit <a href="{{ logout_url }}">logout</a></h1>
-    <p>{{ me.screen_name }} home time line</p>
+    <h1>GATWIT <a href="{{ logout_url }}">logout</a></h1>
+    {% if message %}
+        <p>{{ message }}</p>
+    {% endif %}
+    <p>@{{ me.screen_name }} home time line</p>
     {% for status in collection %}
         <p>
             <img src="{{ status.user.profile_image_url }}">
