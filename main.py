@@ -141,11 +141,13 @@ class Index(BaseHandler):
         auth.set_access_token(credentials.access_key, credentials.access_secret)
 
         page = int(self.request.get('page', 1))
-        query = unquote(self.request.get('q', 'night'))
+        query = unquote(self.request.get('q', 'milan'))
         geocode = unquote(self.request.get('geocode', '44.833,20.463,20km'))
 
         auth_api = tweepy.API(auth)
-        collection = auth_api.search(q=query, geocode=geocode, rpp=10, page=page, count=20)
+        # stat = auth_api.rate_limit_status(resources='search')
+        # logging.error(stat)
+        collection = auth_api.search(q=query, geocode=geocode, rpp=10, result_type='recent', page=page, count=11)
 
         self.render_template('index.html', {
             'collection': collection,

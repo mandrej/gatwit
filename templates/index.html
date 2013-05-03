@@ -12,13 +12,19 @@
         <a href="/">GATWIT</a>
         <a href="{{ logout_url }}">logout</a>
     </h1>
-    <h2>
-        Search within 20km around Belgrade for '{{ collection.query|unquote }}'
-{#        completed in {{ collection.completed_in }}s#}
+    <form action="/" method="get">
+        <p>
+            <label>Searching</label>
+            <input type="text" name="q" value="{{ collection.query|unquote }}">
+        </p>
+    </form>
+    <p>
+        Results within 20km around Belgrade<br>
+        completed in {{ collection.completed_in }}s
         {% if collection.next_page %}
         | <a href="{{ collection.next_page }}">next</a>
         {% endif %}
-    </h2>
+    </p>
     {% for obj in collection %}
         <p>
             <img src="{{ obj.profile_image_url_https }}">
