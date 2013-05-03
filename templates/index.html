@@ -9,9 +9,6 @@
 </head>
 <body>
     <h1>GATWIT <a href="{{ logout_url }}">logout</a></h1>
-    {% if message %}
-        <p>{{ message }}</p>
-    {% endif %}
     <p>@{{ me.screen_name }} home time line</p>
     {% for status in collection %}
         <p>

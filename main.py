@@ -4,6 +4,7 @@ import os
 import json
 import webapp2
 import jinja2
+import time
 import tweepy
 import logging
 from google.appengine.api import users
@@ -87,13 +88,13 @@ class CallbackPage(BaseHandler):
         credentials.oauth_token = oauth_token
         credentials.oauth_verifier = oauth_verifier
         credentials.put()
+        time.sleep(1)
         self.redirect('/')
 
 
 class Index(BaseHandler):
     @login_required
     def get(self):
-        message = None
         credentials = UserCredentials.query(UserCredentials.user == self.user).get()
         if credentials is None:
             logging.info('RequestAuthorization')
@@ -104,16 +105,12 @@ class Index(BaseHandler):
         auth.set_access_token(credentials.access_key, credentials.access_secret)
 
         auth_api = tweepy.API(auth)
-        try:
-            collection = auth_api.home_timeline(count=10)
-        except tweepy.TweepError, message:
-            pass
-        else:
-            self.render_template('index.html', {
-                'collection': collection,
-                'message': message,
-                'me': auth_api.me(),
-                'logout_url': users.create_logout_url('/')})
+        collection = auth_api.home_timeline(count=10)
+
+        self.render_template('index.html', {
+            'collection': collection,
+            'me': auth_api.me(),
+            'logout_url': users.create_logout_url('/')})
 
 
 app = WSGIApplication([
