@@ -1,0 +1,58 @@
+@import "mixins.less";
+@import "font-awesome.less";
+
+@default_font: sans-serif;
+@monospaced: "Courier New", Courier, Freemono, "Nimbus Mono L", monospace;
+
+@google_blue: #0048f1;
+@google_red: #ea2434;
+@google_orange: #f8a912;
+@google_green: #01a514;
+
+@paper: #fff;
+@text: #333;
+@neutral: #666;
+@light: (@neutral + 2 * @text);
+@lighter: (@neutral + @text);
+@darker: (@neutral - @text);
+
+.clearing { clear: both; display: block; content: "."; height: 0; visibility: hidden; }
+
+* { margin: 0; padding: 0; }
+a { color: @google_blue; text-decoration: none; outline: none; }
+a img { border: none; vertical-align: middle; }
+
+body {
+	background: @paper;
+    height: 100%;
+	color: @text;
+	font-family: @default_font;
+    font-size: 16px;
+	.page { padding: 1em; }
+}
+
+h1 {
+	background: url(/static/img/tw.png) no-repeat;
+	padding-left: 3em;
+	font-size: 2em;
+	line-height: 2.5em;
+	a {
+		color: @neutral;
+		&:hover { color: @google_orange; }
+		&.next { float: right; }
+	}
+}
+
+p {
+	margin: 0.5em 0;
+	img { float: left; margin-right: 0.5em; }
+	&:after { .clearing; }
+}
+
+input {
+	margin-left: 1%;
+	font-size: 2em;
+	color: @google_green;
+	border: none;
+}
+

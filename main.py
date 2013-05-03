@@ -62,6 +62,7 @@ ENV.filters.update({
     'timesince': timesince_jinja,
 })
 
+
 class BaseHandler(webapp2.RequestHandler):
     @webapp2.cached_property
     def user(self):

@@ -1,37 +1,37 @@
 <!DOCTYPE html>
 <html>
 <head>
+    <meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+	<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>GATWIT</title>
-    <style type="text/css">
-        body { font-family: sans-serif; }
-        p img { float: left; margin-right: 0.5em; }
-    </style>
+    <link type="text/css" rel="stylesheet" href="/static/css/base.css"/>
 </head>
 <body>
-    <h1>
-        <a href="/">GATWIT</a>
-        <a href="{{ logout_url }}">logout</a>
-    </h1>
-    <form action="/" method="get">
-        <p>
-            <label>Searching</label>
-            <input type="text" name="q" value="{{ collection.query|unquote }}">
-        </p>
-    </form>
-    <p>
-        Results within 20km around Belgrade<br>
-        completed in {{ collection.completed_in }}s
-        {% if collection.next_page %}
-        | <a href="{{ collection.next_page }}">next</a>
-        {% endif %}
-    </p>
-    {% for obj in collection %}
-        <p>
-            <img src="{{ obj.profile_image_url_https }}">
-            <a href="https://twitter.com/{{ obj.from_user }}">@{{ obj.from_user }}</a>, {{ obj.created_at|timesince }}<br>
-            <strong>{{ obj.source }}</strong>: {{ obj.text|urlize }}<br>
-{#            <small>{% for k,v in obj.__dict__.items() %}{{ k }}, {% endfor %}</small>#}
-        </p>
-    {% endfor %}
+    <div class="page">
+        <h1>
+            <a href="/">GATWIT</a>
+            {% if collection.next_page %}
+                <a href="{{ collection.next_page }}" class="next icon-chevron-right icon-2x"></a>
+            {% endif %}
+        </h1>
+        <form action="/" method="get">
+            <p>
+                <i class="icon-search icon-2x"></i>
+                <input type="text" name="q" value="{{ collection.query|unquote }}">
+            </p>
+        </form>
+        <p>Results within 20km around Belgrade,
+            completed in {{ collection.completed_in }}s</p>
+        {% for obj in collection %}
+            <p>
+                <img src="{{ obj.profile_image_url_https }}">
+                <a href="https://twitter.com/{{ obj.from_user }}">@{{ obj.from_user }}</a>, {{ obj.created_at|timesince }}<br>
+                <strong>{{ obj.source }}</strong>: {{ obj.text|urlize }}<br>
+    {#            <small>{% for k,v in obj.__dict__.items() %}{{ k }}, {% endfor %}</small>#}
+            </p>
+        {% endfor %}
+    </div>
 </body>
 </html>
