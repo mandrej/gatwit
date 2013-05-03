@@ -81,6 +81,7 @@ class BaseHandler(webapp2.RequestHandler):
 
 
 class RequestAuthorization(BaseHandler):
+    @login_required
     def get(self):
         # Build a new oauth handler and display authorization url to user.
         auth = tweepy.OAuthHandler(CONSUMER_KEY, CONSUMER_SECRET, CALLBACK)
@@ -95,6 +96,7 @@ class RequestAuthorization(BaseHandler):
 
 
 class CallbackPage(BaseHandler):
+    @login_required
     def get(self):
         oauth_token = self.request.get("oauth_token", None)
         oauth_verifier = self.request.get("oauth_verifier", None)
@@ -141,7 +143,7 @@ class Index(BaseHandler):
         auth.set_access_token(credentials.access_key, credentials.access_secret)
 
         page = int(self.request.get('page', 1))
-        query = unquote(self.request.get('q', 'milan'))
+        query = unquote(self.request.get('q', ''))
         geocode = unquote(self.request.get('geocode', '44.833,20.463,20km'))
 
         auth_api = tweepy.API(auth)
