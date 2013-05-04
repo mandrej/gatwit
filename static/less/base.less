@@ -19,8 +19,13 @@
 .clearing { clear: both; display: block; content: "."; height: 0; visibility: hidden; }
 
 * { margin: 0; padding: 0; }
-a { color: @google_blue; text-decoration: none; outline: none; }
-a img { border: none; vertical-align: middle; }
+a {
+	color: @google_blue;
+	text-decoration: none;
+	outline: none;
+	&.hash { color: @google_green; }
+	img { border: none; vertical-align: middle; }
+}
 
 body {
 	background: @paper;
@@ -46,6 +51,7 @@ h1 {
 p {
 	margin: 0.5em 0;
 	img { float: left; margin-right: 0.5em; }
+	&.error { color: @google_red; }
 	&:after { .clearing; }
 }
 

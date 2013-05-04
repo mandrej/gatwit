@@ -1,6 +1,10 @@
 __author__ = 'milan'
+# -*- coding: utf-8 -*-
 
 import os
+import sys
+import traceback
+import re
 import json
 import webapp2
 import jinja2
@@ -9,11 +13,11 @@ import tweepy
 import urllib
 import logging
 import datetime
-from tweepy.utils import unescape_html
 from google.appengine.api import users
 from webapp2 import WSGIApplication
 from webapp2_extras.jinja2 import get_jinja2
 from webapp2_extras.appengine.users import login_required
+from jinja2.utils import Markup
 from models import UserCredentials
 
 CONSUMER_KEY = '6GuIfrWPKuAp7UDMT17GA'
@@ -30,15 +34,17 @@ ENV = jinja2.Environment(
 )
 
 
-def quote(s):
-    return urllib.quote_plus(s)
+def twitterize(text):
+    text = unicode(text.encode('utf-8'), 'utf-8')
+    twit_link = re.compile(r'@(\w+)', re.IGNORECASE)
+    hash_link = re.compile(r'#(\w+)', re.IGNORECASE)
+    if twit_link.search(text):
+        text = twit_link.sub(r'<a href="https://twitter.com/\1">@\1</a>', text)
+    if hash_link.search(text):
+        text = hash_link.sub(r'<a class="hash" href="https://twitter.com/search?q=%23\1&src=hash">#\1</a>', text)
+    return Markup(text)
 
 
-def unquote(s):
-    return urllib.unquote_plus(s)
-
-
-# https://twitter.com/search?q=%23energyideas&src=hash
 def timesince_jinja(value, default="just now"):
     now = datetime.datetime.utcnow()
     diff = now - value
@@ -57,9 +63,8 @@ def timesince_jinja(value, default="just now"):
     return default
 
 ENV.filters.update({
-    'quote': quote,
-    'unquote': unquote,
     'timesince': timesince_jinja,
+    'twitterize': twitterize,
 })
 
 
@@ -71,6 +76,21 @@ class BaseHandler(webapp2.RequestHandler):
     @webapp2.cached_property
     def jinja2(self):
         return get_jinja2(app=self.app)
+
+    def handle_exception(self, exception, debug):
+        template = ENV.get_template('error.html')
+        if isinstance(exception, webapp2.HTTPException):
+            data = {'error': exception, 'path': self.request.path_qs}
+            self.render_template(template, data)
+            self.response.set_status(exception.code)
+        if isinstance(exception, tweepy.TweepError):
+            data = {'error': exception['message']}
+            self.render_template(template, data)
+            self.response.set_status(exception.code)
+        else:
+            data = {'error': exception, 'lines': ''.join(traceback.format_exception(*sys.exc_info()))}
+            self.render_template(template, data)
+            self.response.set_status(500)
 
     def render_template(self, filename, kwargs):
         template = ENV.get_template(filename)
@@ -102,14 +122,12 @@ class CallbackPage(BaseHandler):
         oauth_token = self.request.get("oauth_token", None)
         oauth_verifier = self.request.get("oauth_verifier", None)
         if oauth_token is None:
-            # Invalid request!
-            self.render_template('error.html', {"message": 'Missing required parameters!'})
+            self.abort(401)
 
-        # Lookup the request token
+        # Lookup the credentials
         credentials = UserCredentials.get_by_id(oauth_token)
         if credentials is None:
-            # We do not seem to have this request token, show an error.
-            self.render_template('error.html', {"message": 'No credentials'})
+            self.abort(500)
 
         # Rebuild the auth handler
         auth = tweepy.OAuthHandler(CONSUMER_KEY, CONSUMER_SECRET)
@@ -118,9 +136,8 @@ class CallbackPage(BaseHandler):
         # Fetch the access token
         try:
             auth.get_access_token(oauth_verifier)
-        except tweepy.TweepError, e:
-            # Failed to get access token
-            self.render_template('error.html', {"message": e})
+        except tweepy.TweepError:
+            pass
 
         credentials.access_key = auth.access_token.key
         credentials.access_secret = auth.access_token.secret
@@ -136,7 +153,7 @@ class Index(BaseHandler):
     def get(self):
         credentials = UserCredentials.query(UserCredentials.user == self.user).get()
         if credentials is None:
-            logging.info('RequestAuthorization')
+            logging.info('Request Authorization')
             return self.redirect('/oauth')
 
         auth = tweepy.OAuthHandler(CONSUMER_KEY, CONSUMER_SECRET)
@@ -144,18 +161,17 @@ class Index(BaseHandler):
         auth.set_access_token(credentials.access_key, credentials.access_secret)
 
         page = int(self.request.get('page', 1))
-        query = unquote(self.request.get('q', ''))
-        geocode = unquote(self.request.get('geocode', '44.833,20.463,20km'))
+        query = self.request.get('q', '')
+        geocode = self.request.get('geocode', '44.833,20.463,20km')
 
         auth_api = tweepy.API(auth)
-        # stat = auth_api.rate_limit_status(resources='search')
-        # logging.error(stat)
-        collection = auth_api.search(q=query, geocode=geocode, rpp=10, result_type='recent', page=page, count=11)
+        try:
+            me = auth_api.me()
+            collection = auth_api.search(q=query, geocode=geocode, rpp=10, include_entities=True, page=page, count=11)
+        except tweepy.TweepError:
+            pass
 
-        self.render_template('index.html', {
-            'collection': collection,
-            'me': auth_api.me(),
-            'logout_url': users.create_logout_url('/')})
+        self.render_template('index.html', {'collection': collection, 'query': query, 'me': me})
 
 
 app = WSGIApplication([

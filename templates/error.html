@@ -1,9 +1,11 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Tweepy OAuth Example -- Error!</title>
-</head>
-<body>
-    <h1>{{ message }}</h1>
-</body>
-</html>
+{% extends "base.html" %}
+
+{% block content %}
+    {% if error %}
+        <p class="error">
+            {{ error }}
+            {% if path %}<br>{{ path }}{% endif %}
+        </p>
+        <pre>{{ lines }}</pre>
+    {% endif %}
+{% endblock %}
