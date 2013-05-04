@@ -84,7 +84,7 @@ class BaseHandler(webapp2.RequestHandler):
             self.render_template(template, data)
             self.response.set_status(exception.code)
         if isinstance(exception, tweepy.error.TweepError):
-            data = {'error': exception.reason}
+            data = {'error': exception.message[0]['message']}
             self.render_template(template, data)
             self.response.set_status(500)
         else:
@@ -165,18 +165,14 @@ class Index(BaseHandler):
         geocode = self.request.get('geocode', '44.833,20.463,20km')
 
         auth_api = tweepy.API(auth)
-        try:
-            me = auth_api.me()
-            collection = auth_api.search(
-                q=query,
-                geocode=geocode,
-                rpp=10,
-                include_entities=True,
-                page=page,
-                retry_count=2)
-        except tweepy.error.TweepError:
-            self.abort(500)
-
+        me = auth_api.me()
+        collection = auth_api.search(
+            q=query,
+            geocode=geocode,
+            rpp=10,
+            include_entities=True,
+            page=page,
+            retry_count=3)
         self.render_template('index.html', {'collection': collection, 'query': query, 'me': me})
 
 
