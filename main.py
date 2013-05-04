@@ -167,7 +167,13 @@ class Index(BaseHandler):
         auth_api = tweepy.API(auth)
         try:
             me = auth_api.me()
-            collection = auth_api.search(q=query, geocode=geocode, rpp=10, include_entities=True, page=page)
+            collection = auth_api.search(
+                q=query,
+                geocode=geocode,
+                rpp=10,
+                include_entities=True,
+                page=page,
+                retry_count=2)
         except tweepy.error.TweepError:
             self.abort(500)
 
