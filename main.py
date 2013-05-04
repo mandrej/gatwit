@@ -83,10 +83,10 @@ class BaseHandler(webapp2.RequestHandler):
             data = {'error': exception, 'path': self.request.path_qs}
             self.render_template(template, data)
             self.response.set_status(exception.code)
-        if isinstance(exception, tweepy.TweepError):
-            data = {'error': exception['message']}
+        if isinstance(exception, tweepy.error.TweepError):
+            data = {'error': exception.reason}
             self.render_template(template, data)
-            self.response.set_status(exception.code)
+            self.response.set_status(500)
         else:
             data = {'error': exception, 'lines': ''.join(traceback.format_exception(*sys.exc_info()))}
             self.render_template(template, data)
@@ -136,8 +136,8 @@ class CallbackPage(BaseHandler):
         # Fetch the access token
         try:
             auth.get_access_token(oauth_verifier)
-        except tweepy.TweepError:
-            pass
+        except tweepy.error.TweepError:
+            self.abort(500)
 
         credentials.access_key = auth.access_token.key
         credentials.access_secret = auth.access_token.secret
@@ -167,9 +167,9 @@ class Index(BaseHandler):
         auth_api = tweepy.API(auth)
         try:
             me = auth_api.me()
-            collection = auth_api.search(q=query, geocode=geocode, rpp=10, include_entities=True, page=page, count=11)
-        except tweepy.TweepError:
-            pass
+            collection = auth_api.search(q=query, geocode=geocode, rpp=10, include_entities=True, page=page)
+        except tweepy.error.TweepError:
+            self.abort(500)
 
         self.render_template('index.html', {'collection': collection, 'query': query, 'me': me})
 
