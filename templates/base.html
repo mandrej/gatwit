@@ -14,6 +14,12 @@
             <a href="/">LAJNA</a>
             {% block paginator %}{% endblock %}
         </h1>
+        <form action="/" method="get">
+            <p>
+                <i class="icon-search icon-2x" style="display: inline-block; margin: 0 1em 0 0.7em;"></i>
+                <input type="text" name="q" value="{{ query }}">
+            </p>
+        </form>
         {% block content %}{% endblock %}
     </div>
 </body>
