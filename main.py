@@ -159,12 +159,12 @@ class Index(BaseHandler):
         auth = tweepy.OAuthHandler(CONSUMER_KEY, CONSUMER_SECRET)
         auth.set_request_token(credentials.token_key, credentials.token_secret)
         auth.set_access_token(credentials.access_key, credentials.access_secret)
+        auth_api = tweepy.API(auth)
 
         page = int(self.request.get('page', 1))
         query = self.request.get('q', '')
         geocode = self.request.get('geocode', '44.833,20.463,20km')
 
-        auth_api = tweepy.API(auth)
         me = auth_api.me()
         collection = auth_api.search(
             q=query,
@@ -175,6 +175,21 @@ class Index(BaseHandler):
             retry_count=3)
         self.render_template('index.html', {'collection': collection, 'query': query, 'me': me})
 
+
+# class Reply(BaseHandler):
+#     def post(self, id_str):
+#         credentials = UserCredentials.query(UserCredentials.user == self.user).get()
+#         if credentials is None:
+#             logging.info('Request Authorization')
+#             return self.redirect('/oauth')
+#
+#         auth = tweepy.OAuthHandler(CONSUMER_KEY, CONSUMER_SECRET)
+#         auth.set_request_token(credentials.token_key, credentials.token_secret)
+#         auth.set_access_token(credentials.access_key, credentials.access_secret)
+#         auth_api = tweepy.API(auth)
+#
+#         text = urllib.quote(self.request.get('text', ''))  # from post 140 chars max
+#         reply = auth_api.update_status('@{0} {1}'.format(auth_api.me(), text), id_str)
 
 app = WSGIApplication([
     (r'/', Index),
