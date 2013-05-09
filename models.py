@@ -4,7 +4,7 @@ from google.appengine.ext import ndb
 
 
 class UserCredentials(ndb.Model):
-    # token_key as ID
+    # user.user_id() as ID
     token_key = ndb.StringProperty(required=True)
     token_secret = ndb.StringProperty(required=True)
     access_key = ndb.StringProperty()

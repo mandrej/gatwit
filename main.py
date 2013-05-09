@@ -108,7 +108,7 @@ class RequestAuthorization(BaseHandler):
         auth = tweepy.OAuthHandler(CONSUMER_KEY, CONSUMER_SECRET, CALLBACK)
         auth_url = auth.get_authorization_url()
         credentials = UserCredentials.get_or_insert(
-            auth.request_token.key,
+            self.user.user_id(),
             token_key=auth.request_token.key,
             token_secret=auth.request_token.secret
         )
@@ -125,10 +125,9 @@ class CallbackPage(BaseHandler):
             self.abort(401)
 
         # Lookup the credentials
-        credentials = UserCredentials.get_by_id(oauth_token)
+        credentials = UserCredentials.get_by_id(self.user.user_id())
         if credentials is None:
             self.abort(500)
-
         # Rebuild the auth handler
         auth = tweepy.OAuthHandler(CONSUMER_KEY, CONSUMER_SECRET)
         auth.set_request_token(credentials.token_key, credentials.token_secret)
@@ -151,7 +150,7 @@ class CallbackPage(BaseHandler):
 class Index(BaseHandler):
     @login_required
     def get(self):
-        credentials = UserCredentials.query(UserCredentials.user == self.user).get()
+        credentials = UserCredentials.get_by_id(self.user.user_id())
         if credentials is None:
             logging.info('Request Authorization')
             return self.redirect('/oauth')
@@ -178,7 +177,7 @@ class Index(BaseHandler):
 
 # class Reply(BaseHandler):
 #     def post(self, id_str):
-#         credentials = UserCredentials.query(UserCredentials.user == self.user).get()
+#         credentials = UserCredentials.get_by_id(self.user.user_id())
 #         if credentials is None:
 #             logging.info('Request Authorization')
 #             return self.redirect('/oauth')

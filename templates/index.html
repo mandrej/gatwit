@@ -17,7 +17,7 @@
                 {{ obj.text|twitterize|urlize }}<br>
 {#                |{{ obj.id }}|{{ obj.id_str }}|#}
 {#                <br>{{ obj.entities|pprint }}#}
-                <small>{% for k,v in obj.__dict__.items() %}{{ k }}, {% endfor %}</small>
+{#                <small>{% for k,v in obj.__dict__.items() %}{{ k }}, {% endfor %}</small>#}
             </p>
         {% endfor %}
     {% else %}
