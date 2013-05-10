@@ -83,7 +83,7 @@ class BaseHandler(webapp2.RequestHandler):
             data = {'error': exception, 'path': self.request.path_qs}
             self.render_template(template, data)
             self.response.set_status(exception.code)
-        if isinstance(exception, tweepy.error.TweepError):
+        if isinstance(exception, tweepy.TweepError):
             data = {'error': exception.message[0]['message']}
             self.render_template(template, data)
             self.response.set_status(500)
@@ -124,20 +124,13 @@ class CallbackPage(BaseHandler):
         if oauth_token is None:
             self.abort(401)
 
-        # Lookup the credentials
         credentials = UserCredentials.get_by_id(self.user.user_id())
-        if credentials is None:
-            self.abort(500)
         # Rebuild the auth handler
         auth = tweepy.OAuthHandler(CONSUMER_KEY, CONSUMER_SECRET)
         auth.set_request_token(credentials.token_key, credentials.token_secret)
 
         # Fetch the access token
-        try:
-            auth.get_access_token(oauth_verifier)
-        except tweepy.error.TweepError:
-            self.abort(500)
-
+        auth.get_access_token(oauth_verifier)
         credentials.access_key = auth.access_token.key
         credentials.access_secret = auth.access_token.secret
         credentials.oauth_token = oauth_token
@@ -152,7 +145,7 @@ class Index(BaseHandler):
     def get(self):
         credentials = UserCredentials.get_by_id(self.user.user_id())
         if credentials is None:
-            logging.info('Request Authorization')
+            logging.info('New user request authorization')
             return self.redirect('/oauth')
 
         auth = tweepy.OAuthHandler(CONSUMER_KEY, CONSUMER_SECRET)
