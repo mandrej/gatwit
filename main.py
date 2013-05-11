@@ -133,8 +133,8 @@ class CallbackPage(BaseHandler):
         auth.get_access_token(oauth_verifier)
         credentials.access_key = auth.access_token.key
         credentials.access_secret = auth.access_token.secret
-        credentials.oauth_token = oauth_token
-        credentials.oauth_verifier = oauth_verifier
+        # credentials.oauth_token = oauth_token
+        # credentials.oauth_verifier = oauth_verifier
         credentials.put()
         time.sleep(1)
         self.redirect('/')

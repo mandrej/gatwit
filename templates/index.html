@@ -8,16 +8,17 @@
 
 {% block content %}
     {% if collection %}
-        <p>Results within 20km around Belgrade, completed in {{ collection.completed_in }}s</p>
+        <small>Results within 20km around Belgrade, completed in {{ collection.completed_in }}s</small>
         {% for obj in collection %}
             <p>
                 <img src="{{ obj.profile_image_url }}">
-                <a href="https://twitter.com/{{ obj.from_user }}">@{{ obj.from_user }}</a>, {{ obj.created_at|timesince }}<br>
-                <strong>{{ obj.source }}</strong>:
-                {{ obj.text|twitterize|urlize }}<br>
-{#                |{{ obj.id }}|{{ obj.id_str }}|#}
-{#                <br>{{ obj.entities|pprint }}#}
-{#                <small>{% for k,v in obj.__dict__.items() %}{{ k }}, {% endfor %}</small>#}
+                <span>
+                    <a href="https://twitter.com/{{ obj.from_user }}">@{{ obj.from_user }}</a>,
+                    <span>{{ obj.source }}, {{ obj.created_at|timesince }}</span><br>
+                    {{ obj.text|twitterize|urlize }}<br>
+{#                    <br>{{ obj.entities|pprint }}#}
+{#                    <small>{% for k,v in obj.__dict__.items() %}{{ k }}, {% endfor %}</small>#}
+                </span>
             </p>
         {% endfor %}
     {% else %}

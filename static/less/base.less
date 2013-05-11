@@ -9,18 +9,15 @@
 @google_orange: #f8a912;
 @google_green: #01a514;
 
-@paper: #fff;
-@text: #333;
-@neutral: #666;
-@light: (@neutral + 2 * @text);
-@lighter: (@neutral + @text);
-@darker: (@neutral - @text);
+@paper: #222;
+@text: #999;
+@tweet: #fff;
 
 .clearing { clear: both; display: block; content: "."; height: 0; visibility: hidden; }
 
 * { margin: 0; padding: 0; }
 a {
-	color: @google_blue;
+	color: @google_orange;
 	text-decoration: none;
 	outline: none;
 	&.hash { color: @google_green; }
@@ -42,23 +39,30 @@ h1 {
 	font-size: 2em;
 	line-height: 2.5em;
 	a {
-		color: @neutral;
+		color: @text;
 		&:hover { color: @google_orange; }
 		&.next { float: right; }
 	}
 }
 
 p {
-	margin: 0.5em 0;
-	img { float: left; margin-right: 0.5em; }
+	margin: 1em 0;
+	min-height: 3em;
+	img { float: left; }
 	&.error { color: @google_red; }
-	&:after { .clearing; }
+    span {
+		display: block;
+		padding-left: 3.8em;
+		color: @tweet;
+		> span { display: inline; padding: 0; color: @text; }
+    }
 }
 
 input {
 	width: 65%;
 	font-size: 2em;
 	color: @google_green;
+    background: transparent;
 	border: none;
 }
 
