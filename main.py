@@ -7,18 +7,13 @@ import traceback
 import re
 import json
 import webapp2
-import jinja2
-import time
 import tweepy
 import urllib
 import logging
 import datetime
-from google.appengine.api import users
 from webapp2 import WSGIApplication
-from webapp2_extras.jinja2 import get_jinja2
-from webapp2_extras.appengine.users import login_required
+from webapp2_extras import sessions, jinja2
 from jinja2.utils import Markup
-from models import UserCredentials
 
 CONSUMER_KEY = '6GuIfrWPKuAp7UDMT17GA'
 CONSUMER_SECRET = '6IqWHpS3MkU2XsnIzehvfctTHnqEs3hOPWFznijRzG4'
@@ -26,12 +21,6 @@ if os.environ.get('SERVER_SOFTWARE', '').startswith('Dev'):
     CALLBACK = 'http://127.0.0.1:8080/oauth/callback'
 else:
     CALLBACK = 'http://gatwitbot.appspot.com/oauth/callback'
-
-TEMPLATE_DIR = os.path.join(os.path.dirname(__file__), 'templates')
-ENV = jinja2.Environment(
-    loader=jinja2.FileSystemLoader(TEMPLATE_DIR),
-    autoescape=True
-)
 
 
 def twitterize(text):
@@ -62,39 +51,58 @@ def timesince_jinja(value, default="just now"):
             return "%d %s ago" % (period, singular if period == 1 else plural)
     return default
 
-ENV.filters.update({
-    'timesince': timesince_jinja,
-    'twitterize': twitterize,
-})
+CONFIG = {
+    'webapp2_extras.jinja2': {
+        'filters': {
+            'twitterize': twitterize,
+            'timesince': timesince_jinja
+        },
+        'environment_args': {
+            'autoescape': True,
+            'extensions': ['jinja2.ext.autoescape', 'jinja2.ext.with_']
+        },
+    },
+    'webapp2_extras.sessions': {'secret_key': 'XbOgZLNTzv5OoO2tBAM+Rw5ewX5d3TxVgvSfRJtc1W4='}
+}
 
 
 class BaseHandler(webapp2.RequestHandler):
-    @webapp2.cached_property
-    def user(self):
-        return users.get_current_user()
+    def dispatch(self):
+        # Get a session store for this request.
+        self.session_store = sessions.get_store(request=self.request)
+        try:
+            # Dispatch the request.
+            webapp2.RequestHandler.dispatch(self)
+        finally:
+            # Save all sessions.
+            self.session_store.save_sessions(self.response)
 
     @webapp2.cached_property
     def jinja2(self):
-        return get_jinja2(app=self.app)
+        return jinja2.get_jinja2(app=self.app)
+
+    @webapp2.cached_property
+    def session(self):
+        """Returns a session using the default cookie key"""
+        return self.session_store.get_session()
+
+    @webapp2.cached_property
+    def session_store(self):
+        return sessions.get_store(request=self.request)
 
     def handle_exception(self, exception, debug):
-        template = ENV.get_template('error.html')
+        template = 'error.html'
         if isinstance(exception, webapp2.HTTPException):
             data = {'error': exception, 'path': self.request.path_qs}
             self.render_template(template, data)
             self.response.set_status(exception.code)
-        if isinstance(exception, tweepy.TweepError):
-            data = {'error': exception.message[0]['message']}
-            self.render_template(template, data)
-            self.response.set_status(500)
         else:
             data = {'error': exception, 'lines': ''.join(traceback.format_exception(*sys.exc_info()))}
             self.render_template(template, data)
             self.response.set_status(500)
 
     def render_template(self, filename, kwargs):
-        template = ENV.get_template(filename)
-        self.response.write(template.render(kwargs))
+        self.response.write(self.jinja2.render_template(filename, **kwargs))
 
     def render_json(self, data):
         self.response.content_type = 'application/json; charset=utf-8'
@@ -102,55 +110,47 @@ class BaseHandler(webapp2.RequestHandler):
 
 
 class RequestAuthorization(BaseHandler):
-    @login_required
     def get(self):
         # Build a new oauth handler and display authorization url to user.
         auth = tweepy.OAuthHandler(CONSUMER_KEY, CONSUMER_SECRET, CALLBACK)
         auth_url = auth.get_authorization_url()
-        credentials = UserCredentials.get_or_insert(
-            self.user.user_id(),
-            token_key=auth.request_token.key,
-            token_secret=auth.request_token.secret
-        )
-        credentials.put()
+        self.session['token_key'] = auth.request_token.key
+        self.session['token_secret'] = auth.request_token.secret
         self.redirect(auth_url)
 
 
 class CallbackPage(BaseHandler):
-    @login_required
     def get(self):
         oauth_token = self.request.get("oauth_token", None)
         oauth_verifier = self.request.get("oauth_verifier", None)
         if oauth_token is None:
             self.abort(401)
 
-        credentials = UserCredentials.get_by_id(self.user.user_id())
         # Rebuild the auth handler
         auth = tweepy.OAuthHandler(CONSUMER_KEY, CONSUMER_SECRET)
-        auth.set_request_token(credentials.token_key, credentials.token_secret)
+        auth.set_request_token(self.session.get('token_key'), self.session.get('token_secret'))
 
         # Fetch the access token
         auth.get_access_token(oauth_verifier)
-        credentials.access_key = auth.access_token.key
-        credentials.access_secret = auth.access_token.secret
-        # credentials.oauth_token = oauth_token
-        # credentials.oauth_verifier = oauth_verifier
-        credentials.put()
-        time.sleep(1)
+        self.session['access_key'] = auth.access_token.key
+        self.session['access_secret'] = auth.access_token.secret
         self.redirect('/')
 
 
 class Index(BaseHandler):
-    @login_required
     def get(self):
-        credentials = UserCredentials.get_by_id(self.user.user_id())
-        if credentials is None:
-            logging.info('New user request authorization')
+        tokens = [
+            self.session.get('token_key'),
+            self.session.get('token_secret'),
+            self.session.get('access_key'),
+            self.session.get('access_secret')
+        ]
+        if any(tok is None for tok in tokens):
             return self.redirect('/oauth')
 
         auth = tweepy.OAuthHandler(CONSUMER_KEY, CONSUMER_SECRET)
-        auth.set_request_token(credentials.token_key, credentials.token_secret)
-        auth.set_access_token(credentials.access_key, credentials.access_secret)
+        auth.set_request_token(self.session.get('token_key'), self.session.get('token_secret'))
+        auth.set_access_token(self.session.get('access_key'), self.session.get('access_secret'))
         auth_api = tweepy.API(auth)
 
         page = int(self.request.get('page', 1))
@@ -187,4 +187,4 @@ app = WSGIApplication([
     (r'/', Index),
     (r'/oauth', RequestAuthorization),
     (r'/oauth/callback', CallbackPage),
-], debug=True)
+], config=CONFIG, debug=True)
