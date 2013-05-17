@@ -144,8 +144,8 @@ class CallbackPage(BaseHandler):
 class Index(BaseHandler):
     def get(self):
         tokens = [
-            # self.session.get('token_key'),
-            # self.session.get('token_secret'),
+            self.session.get('token_key'),
+            self.session.get('token_secret'),
             self.session.get('access_key'),
             self.session.get('access_secret')
         ]
@@ -153,7 +153,7 @@ class Index(BaseHandler):
             return self.redirect('/oauth')
 
         auth = tweepy.OAuthHandler(CONSUMER_KEY, CONSUMER_SECRET)
-        # auth.set_request_token(self.session.get('token_key'), self.session.get('token_secret'))
+        auth.set_request_token(self.session.get('token_key'), self.session.get('token_secret'))
         auth.set_access_token(self.session.get('access_key'), self.session.get('access_secret'))
         auth_api = tweepy.API(auth)
 
@@ -161,7 +161,10 @@ class Index(BaseHandler):
         query = self.request.get('q', '')
         geocode = self.request.get('geocode', '44.833,20.463,20km')
 
-        me = auth_api.me()
+        screen_name = self.session.get('screen_name', None)
+        if screen_name is None:
+            screen_name = self.session['user'] = auth_api.me().screen_name
+
         collection = auth_api.search(
             q=query,
             geocode=geocode,
@@ -172,7 +175,7 @@ class Index(BaseHandler):
         self.render_template('index.html', {
             'collection': collection,
             'query': query,
-            'title': '{0} {1}'.format(me.screen_name, TITLE)})
+            'title': '{0} {1}'.format(screen_name, TITLE)})
 
 
 # class Reply(BaseHandler):
