@@ -15,6 +15,7 @@ from webapp2 import WSGIApplication
 from webapp2_extras import sessions, jinja2
 from jinja2.utils import Markup
 
+TITLE = 'lajna'
 CONSUMER_KEY = '6GuIfrWPKuAp7UDMT17GA'
 CONSUMER_SECRET = '6IqWHpS3MkU2XsnIzehvfctTHnqEs3hOPWFznijRzG4'
 if os.environ.get('SERVER_SOFTWARE', '').startswith('Dev'):
@@ -62,7 +63,10 @@ CONFIG = {
             'extensions': ['jinja2.ext.autoescape', 'jinja2.ext.with_']
         },
     },
-    'webapp2_extras.sessions': {'secret_key': 'XbOgZLNTzv5OoO2tBAM+Rw5ewX5d3TxVgvSfRJtc1W4='}
+    'webapp2_extras.sessions': {
+        'secret_key': 'XbOgZLNTzv5OoO2tBAM+Rw5ewX5d3TxVgvSfRJtc1W4=',
+        'backends': {'memcache': 'webapp2_extras.appengine.sessions_memcache.MemcacheSessionFactory'}
+    }
 }
 
 
@@ -84,7 +88,7 @@ class BaseHandler(webapp2.RequestHandler):
     @webapp2.cached_property
     def session(self):
         """Returns a session using the default cookie key"""
-        return self.session_store.get_session()
+        return self.session_store.get_session(backend='memcache')
 
     @webapp2.cached_property
     def session_store(self):
@@ -93,11 +97,11 @@ class BaseHandler(webapp2.RequestHandler):
     def handle_exception(self, exception, debug):
         template = 'error.html'
         if isinstance(exception, webapp2.HTTPException):
-            data = {'error': exception, 'path': self.request.path_qs}
+            data = {'error': exception, 'title': TITLE}
             self.render_template(template, data)
             self.response.set_status(exception.code)
         else:
-            data = {'error': exception, 'lines': ''.join(traceback.format_exception(*sys.exc_info()))}
+            data = {'error': exception, 'lines': ''.join(traceback.format_exception(*sys.exc_info())), 'title': TITLE}
             self.render_template(template, data)
             self.response.set_status(500)
 
@@ -124,7 +128,7 @@ class CallbackPage(BaseHandler):
         oauth_token = self.request.get("oauth_token", None)
         oauth_verifier = self.request.get("oauth_verifier", None)
         if oauth_token is None:
-            self.abort(401)
+            self.abort(500)
 
         # Rebuild the auth handler
         auth = tweepy.OAuthHandler(CONSUMER_KEY, CONSUMER_SECRET)
@@ -140,8 +144,8 @@ class CallbackPage(BaseHandler):
 class Index(BaseHandler):
     def get(self):
         tokens = [
-            self.session.get('token_key'),
-            self.session.get('token_secret'),
+            # self.session.get('token_key'),
+            # self.session.get('token_secret'),
             self.session.get('access_key'),
             self.session.get('access_secret')
         ]
@@ -149,7 +153,7 @@ class Index(BaseHandler):
             return self.redirect('/oauth')
 
         auth = tweepy.OAuthHandler(CONSUMER_KEY, CONSUMER_SECRET)
-        auth.set_request_token(self.session.get('token_key'), self.session.get('token_secret'))
+        # auth.set_request_token(self.session.get('token_key'), self.session.get('token_secret'))
         auth.set_access_token(self.session.get('access_key'), self.session.get('access_secret'))
         auth_api = tweepy.API(auth)
 
@@ -165,7 +169,10 @@ class Index(BaseHandler):
             include_entities=True,
             page=page,
             retry_count=3)
-        self.render_template('index.html', {'collection': collection, 'query': query, 'me': me})
+        self.render_template('index.html', {
+            'collection': collection,
+            'query': query,
+            'title': '{0} {1}'.format(me.screen_name, TITLE)})
 
 
 # class Reply(BaseHandler):
