@@ -11,6 +11,7 @@ import tweepy
 import urllib
 import logging
 import datetime
+import pygeoip
 from webapp2 import WSGIApplication
 from webapp2_extras import sessions, jinja2
 from jinja2.utils import Markup
@@ -19,9 +20,15 @@ TITLE = 'lajna'
 CONSUMER_KEY = '6GuIfrWPKuAp7UDMT17GA'
 CONSUMER_SECRET = '6IqWHpS3MkU2XsnIzehvfctTHnqEs3hOPWFznijRzG4'
 if os.environ.get('SERVER_SOFTWARE', '').startswith('Dev'):
+    DEVEL = True
     CALLBACK = 'http://127.0.0.1:8080/oauth/callback'
 else:
+    DEVEL = False
     CALLBACK = 'http://gatwitbot.appspot.com/oauth/callback'
+
+RADIUS = '10mi'
+GI = pygeoip.GeoIP('pygeoip/GeoLiteCity.dat')
+LOCAL_IP = '178.148.225.25'
 
 
 def twitterize(text):
@@ -100,6 +107,15 @@ class BaseHandler(webapp2.RequestHandler):
             data = {'error': exception, 'title': TITLE}
             self.render_template(template, data)
             self.response.set_status(exception.code)
+        if isinstance(exception, tweepy.error.TweepError):
+            data = {'lines': ''.join(traceback.format_exception(*sys.exc_info())),
+                    'title': TITLE}
+            try:
+                data['error'] = '{code}: {message}'.format(**exception[0][0])
+            except TypeError:
+                data['error'] = exception
+            self.render_template(template, data)
+            self.response.set_status(500)
         else:
             data = {'error': exception, 'lines': ''.join(traceback.format_exception(*sys.exc_info())), 'title': TITLE}
             self.render_template(template, data)
@@ -159,23 +175,29 @@ class Index(BaseHandler):
 
         page = int(self.request.get('page', 1))
         query = self.request.get('q', '')
-        geocode = self.request.get('geocode', '44.833,20.463,20km')
 
-        screen_name = self.session.get('screen_name', None)
-        if screen_name is None:
-            screen_name = self.session['user'] = auth_api.me().screen_name
+        user = self.session.get('user')
+        if user is None:
+            user = self.session['user'] = auth_api.me()
 
-        collection = auth_api.search(
-            q=query,
-            geocode=geocode,
-            rpp=10,
-            include_entities=True,
-            page=page,
-            retry_count=3)
+
+        geocode = self.request.get('geocode') or self.session.get('geocode')
+        if geocode is None:
+            if DEVEL:
+                record = GI.record_by_addr(LOCAL_IP)
+            else:
+                record = GI.record_by_addr(self.request.remote_addr)
+            geocode = self.session['geocode'] = '{0},{1}'.format(
+                '{latitude:.4f},{longitude:.4f}'.format(**record),
+                RADIUS)
+
+        collection = auth_api.search(q=query, geocode=geocode, rpp=10, include_entities=True, page=page, retry_count=3)
         self.render_template('index.html', {
             'collection': collection,
             'query': query,
-            'title': '{0} {1}'.format(screen_name, TITLE)})
+            'location': user.location,
+            'radius': RADIUS,
+            'title': '{0} {1}'.format(user.screen_name, TITLE)})
 
 
 # class Reply(BaseHandler):
@@ -197,4 +219,4 @@ app = WSGIApplication([
     (r'/', Index),
     (r'/oauth', RequestAuthorization),
     (r'/oauth/callback', CallbackPage),
-], config=CONFIG, debug=True)
+], config=CONFIG, debug=DEVEL)

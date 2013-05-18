@@ -1,10 +1,6 @@
 {% extends "base.html" %}
 
 {% block content %}
-    {% if error %}
-        <p class="error">
-            {{ error }}
-        </p>
-        <pre>{{ lines }}</pre>
-    {% endif %}
+    <p class="error">{{ error }}</p>
+    {% if lines %}<pre>{{ lines }}</pre>{% endif %}
 {% endblock %}
