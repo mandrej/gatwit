@@ -7,24 +7,22 @@
 {% endblock %}
 
 {% block content %}
-    {% if collection %}
-        <small>
-            Results within {{ radius }} around {{ location }}<br>
-            Product use GeoLite data created by <a href="http://www.maxmind.com">MaxMind</a>
-        </small>
-        {% for obj in collection %}
-            <p>
-                <img src="{{ obj.profile_image_url }}">
-                <span>
-                    <a href="https://twitter.com/{{ obj.from_user }}">@{{ obj.from_user }}</a>,
-                    <span>{{ obj.source }}, {{ obj.created_at|timesince }}</span><br>
-                    {{ obj.text|twitterize|urlize }}<br>
-{#                    <br>{{ obj.entities|pprint }}#}
-{#                    <small>{% for k,v in obj.__dict__.items() %}{{ k }}, {% endfor %}</small>#}
-                </span>
-            </p>
-        {% endfor %}
+    <small>
+        Results within {{ radius }} around {{ location }}<br>
+        Product use GeoLite data created by <a href="http://www.maxmind.com">MaxMind</a>
+    </small>
+    {% for obj in collection %}
+        <p>
+            <img src="{{ obj.profile_image_url }}">
+            <span>
+                <a href="https://twitter.com/{{ obj.from_user }}">@{{ obj.from_user }}</a>,
+                <span>{{ obj.source }}, {{ obj.created_at|timesince }}</span><br>
+                {{ obj.text|twitterize|urlize }}<br>
+{#                <br>{{ obj.entities|pprint }}#}
+{#                <small>{% for k,v in obj.__dict__.items() %}{{ k }}, {% endfor %}</small>#}
+            </span>
+        </p>
     {% else %}
         <p>No search results</p>
-    {% endif %}
+    {% endfor %}
 {% endblock %}

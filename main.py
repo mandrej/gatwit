@@ -102,24 +102,23 @@ class BaseHandler(webapp2.RequestHandler):
         return sessions.get_store(request=self.request)
 
     def handle_exception(self, exception, debug):
-        template = 'error.html'
+        code = 500
+        data = {'title': TITLE}
         if isinstance(exception, webapp2.HTTPException):
-            data = {'error': exception, 'title': TITLE}
-            self.render_template(template, data)
-            self.response.set_status(exception.code)
-        if isinstance(exception, tweepy.error.TweepError):
-            data = {'lines': ''.join(traceback.format_exception(*sys.exc_info())),
-                    'title': TITLE}
+            code = exception.code
+            data['error'] =  exception
+        elif isinstance(exception, tweepy.error.TweepError):
+            data['lines'] = ''.join(traceback.format_exception(*sys.exc_info()))
             try:
                 data['error'] = '{code}: {message}'.format(**exception[0][0])
             except TypeError:
                 data['error'] = exception
-            self.render_template(template, data)
-            self.response.set_status(500)
         else:
-            data = {'error': exception, 'lines': ''.join(traceback.format_exception(*sys.exc_info())), 'title': TITLE}
-            self.render_template(template, data)
-            self.response.set_status(500)
+            data['error'] = exception
+            data['lines'] = ''.join(traceback.format_exception(*sys.exc_info()))
+
+        self.render_template('error.html', data)
+        self.response.set_status(code)
 
     def render_template(self, filename, kwargs):
         self.response.write(self.jinja2.render_template(filename, **kwargs))
@@ -179,7 +178,6 @@ class Index(BaseHandler):
         user = self.session.get('user')
         if user is None:
             user = self.session['user'] = auth_api.me()
-
 
         geocode = self.request.get('geocode') or self.session.get('geocode')
         if geocode is None:
