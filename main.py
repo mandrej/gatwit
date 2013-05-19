@@ -59,23 +59,6 @@ def timesince_jinja(value, default="just now"):
             return "%d %s ago" % (period, singular if period == 1 else plural)
     return default
 
-CONFIG = {
-    'webapp2_extras.jinja2': {
-        'filters': {
-            'twitterize': twitterize,
-            'timesince': timesince_jinja
-        },
-        'environment_args': {
-            'autoescape': True,
-            'extensions': ['jinja2.ext.autoescape', 'jinja2.ext.with_']
-        },
-    },
-    'webapp2_extras.sessions': {
-        'secret_key': 'XbOgZLNTzv5OoO2tBAM+Rw5ewX5d3TxVgvSfRJtc1W4=',
-        'backends': {'memcache': 'webapp2_extras.appengine.sessions_memcache.MemcacheSessionFactory'}
-    }
-}
-
 
 class BaseHandler(webapp2.RequestHandler):
     def dispatch(self):
@@ -128,17 +111,49 @@ class BaseHandler(webapp2.RequestHandler):
         self.response.write(json.dumps(data))
 
 
+class TwitterDecorator(object):
+    def __init__(self, **kwargs):
+        vars(self).update(kwargs)  # REMEMBER THIS
+        self.auth = tweepy.OAuthHandler(self.consumer_key, self.consumer_secret, self.callback)
+
+    def oauth_handler(self, method):
+        def wrapper(handler, *args):
+            handler.auth = self.auth
+            method(handler, *args)
+        return wrapper
+
+    def oauth_required(self, method):
+        def wrapper(handler, *args):
+            tokens = [
+                # handler.session.get('token_key'),
+                # handler.session.get('token_secret'),
+                handler.session.get('access_key'),
+                handler.session.get('access_secret')
+            ]
+            if any(tok is None for tok in tokens):
+                return handler.redirect('/oauth')
+
+            # self.auth.set_request_token(handler.session.get('token_key'), handler.session.get('token_secret'))
+            self.auth.set_access_token(handler.session.get('access_key'), handler.session.get('access_secret'))
+            handler.api = tweepy.API(self.auth)
+            method(handler, *args)
+        return wrapper
+
+decorator = TwitterDecorator(consumer_key=CONSUMER_KEY, consumer_secret=CONSUMER_SECRET, callback=CALLBACK)
+
+
 class RequestAuthorization(BaseHandler):
+    @decorator.oauth_handler
     def get(self):
         # Build a new oauth handler and display authorization url to user.
-        auth = tweepy.OAuthHandler(CONSUMER_KEY, CONSUMER_SECRET, CALLBACK)
-        auth_url = auth.get_authorization_url()
-        self.session['token_key'] = auth.request_token.key
-        self.session['token_secret'] = auth.request_token.secret
+        auth_url = self.auth.get_authorization_url()
+        self.session['token_key'] = self.auth.request_token.key
+        self.session['token_secret'] = self.auth.request_token.secret
         self.redirect(auth_url)
 
 
 class CallbackPage(BaseHandler):
+    @decorator.oauth_handler
     def get(self):
         oauth_token = self.request.get("oauth_token", None)
         oauth_verifier = self.request.get("oauth_verifier", None)
@@ -146,38 +161,24 @@ class CallbackPage(BaseHandler):
             self.abort(500)
 
         # Rebuild the auth handler
-        auth = tweepy.OAuthHandler(CONSUMER_KEY, CONSUMER_SECRET)
-        auth.set_request_token(self.session.get('token_key'), self.session.get('token_secret'))
+        self.auth.set_request_token(self.session.get('token_key'), self.session.get('token_secret'))
 
         # Fetch the access token
-        auth.get_access_token(oauth_verifier)
-        self.session['access_key'] = auth.access_token.key
-        self.session['access_secret'] = auth.access_token.secret
+        self.auth.get_access_token(oauth_verifier)
+        self.session['access_key'] = self.auth.access_token.key
+        self.session['access_secret'] = self.auth.access_token.secret
         self.redirect('/')
 
 
 class Index(BaseHandler):
+    @decorator.oauth_required
     def get(self):
-        tokens = [
-            self.session.get('token_key'),
-            self.session.get('token_secret'),
-            self.session.get('access_key'),
-            self.session.get('access_secret')
-        ]
-        if any(tok is None for tok in tokens):
-            return self.redirect('/oauth')
-
-        auth = tweepy.OAuthHandler(CONSUMER_KEY, CONSUMER_SECRET)
-        auth.set_request_token(self.session.get('token_key'), self.session.get('token_secret'))
-        auth.set_access_token(self.session.get('access_key'), self.session.get('access_secret'))
-        auth_api = tweepy.API(auth)
-
         page = int(self.request.get('page', 1))
         query = self.request.get('q', '')
 
         user = self.session.get('user')
         if user is None:
-            user = self.session['user'] = auth_api.me()
+            user = self.session['user'] = self.api.me()
 
         geocode = self.request.get('geocode') or self.session.get('geocode')
         if geocode is None:
@@ -189,7 +190,7 @@ class Index(BaseHandler):
                 '{latitude:.4f},{longitude:.4f}'.format(**record),
                 RADIUS)
 
-        collection = auth_api.search(q=query, geocode=geocode, rpp=10, include_entities=True, page=page, retry_count=3)
+        collection = self.api.search(q=query, geocode=geocode, rpp=10, include_entities=True, page=page, retry_count=3)
         self.render_template('index.html', {
             'collection': collection,
             'query': query,
@@ -198,23 +199,49 @@ class Index(BaseHandler):
             'title': '{0} {1}'.format(user.screen_name, TITLE)})
 
 
-# class Reply(BaseHandler):
-#     def post(self, id_str):
-#         credentials = UserCredentials.get_by_id(self.user.user_id())
-#         if credentials is None:
-#             logging.info('Request Authorization')
-#             return self.redirect('/oauth')
-#
-#         auth = tweepy.OAuthHandler(CONSUMER_KEY, CONSUMER_SECRET)
-#         auth.set_request_token(credentials.token_key, credentials.token_secret)
-#         auth.set_access_token(credentials.access_key, credentials.access_secret)
-#         auth_api = tweepy.API(auth)
-#
-#         text = urllib.quote(self.request.get('text', ''))  # from post 140 chars max
-#         reply = auth_api.update_status('@{0} {1}'.format(auth_api.me(), text), id_str)
+class Retweet(BaseHandler):
+    @decorator.oauth_required
+    def post(self):
+        id = self.request.get('id')
+        try:
+            status = self.api.retweet(id=id, trim_user=False)
+            self.render_json({'success': True})
+        except tweepy.error.TweepError, e:
+            self.render_json({'success': False, 'message': e})
+        # for k,v in status.__dict__.items():
+        #     logging.error('{0} {1}'.format(k, v))
 
+
+
+class Reply(BaseHandler):
+    @decorator.oauth_required
+    def post(self):
+        id = self.request.get('id')
+        from_user = self.request.get('from')
+        text = self.request.get('text', '')  # from post 140 chars max
+        status = self.api.update_status(in_reply_to_status_id=id, status='{0} {1}'.format(from_user, text))
+        self.render_json({'success': True})
+
+CONFIG = {
+    'webapp2_extras.jinja2': {
+        'filters': {
+            'twitterize': twitterize,
+            'timesince': timesince_jinja
+        },
+        'environment_args': {
+            'autoescape': True,
+            'extensions': ['jinja2.ext.autoescape', 'jinja2.ext.with_']
+        },
+    },
+    'webapp2_extras.sessions': {
+        'secret_key': 'XbOgZLNTzv5OoO2tBAM+Rw5ewX5d3TxVgvSfRJtc1W4=',
+        'backends': {'memcache': 'webapp2_extras.appengine.sessions_memcache.MemcacheSessionFactory'}
+    }
+}
 app = WSGIApplication([
     (r'/', Index),
     (r'/oauth', RequestAuthorization),
     (r'/oauth/callback', CallbackPage),
+    (r'/retweet', Retweet),
+    (r'/reply', Reply),
 ], config=CONFIG, debug=DEVEL)

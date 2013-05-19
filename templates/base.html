@@ -22,5 +22,33 @@
         </form>
         {% block content %}{% endblock %}
     </div>
+    <script src="/static/zepto.min.js"></script>
+    <script>
+        $('.reply').on('click', function() {
+            $(this).closest('.tweet').find('.text, .post, .cancel').toggle();
+        });
+        $('.cancel').on('click', function() {
+            $(this).closest('.tweet').find('.text, .post, .cancel').toggle();
+        });
+        $('.post').on('click', function() {
+            var tweet = $(this).closest('.tweet')[0];
+            var from = $(tweet).find('.from').text();
+            var text = $(tweet).find('.text').val(); // 140 chars max
+            $.post('/reply', {id: tweet.id, from: from, text: text}, function(data, status, xhr) {
+                if (status == 'success') {
+                    $(tweet).find('.text, .post, .cancel').toggle();
+                }
+            })
+        });
+        $('.retweet').on('click', function() {
+            var tweet = $(this).closest('.tweet')[0];
+            $.post('/retweet', {id: tweet.id}, function(data, status, xhr) {
+                var json = JSON.parse(data);
+                if (status != 'success') {
+                    $('#error').text(data.message);
+                }
+            })
+        });
+    </script>
 </body>
 </html>

@@ -11,15 +11,21 @@
         Results within {{ radius }} around {{ location }}<br>
         Product use GeoLite data created by <a href="http://www.maxmind.com">MaxMind</a>
     </small>
+    <p id="error" class="error"></p>
     {% for obj in collection %}
-        <p>
+        <p id="{{ obj.id }}" class="tweet">
             <img src="{{ obj.profile_image_url }}">
             <span>
-                <a href="https://twitter.com/{{ obj.from_user }}">@{{ obj.from_user }}</a>,
+                <a href="https://twitter.com/{{ obj.from_user }}" class="from">@{{ obj.from_user }}</a>,
                 <span>{{ obj.source }}, {{ obj.created_at|timesince }}</span><br>
                 {{ obj.text|twitterize|urlize }}<br>
 {#                <br>{{ obj.entities|pprint }}#}
 {#                <small>{% for k,v in obj.__dict__.items() %}{{ k }}, {% endfor %}</small>#}
+                <a href="#" class="reply">reply</a>
+                <a href="#" class="retweet">retweet</a>
+                <textarea class="text"></textarea>
+                <a href="#" class="post">post</a>
+                <a href="#" class="cancel">cancel</a>
             </span>
         </p>
     {% else %}

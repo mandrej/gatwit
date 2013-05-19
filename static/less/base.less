@@ -5,6 +5,7 @@
 @monospaced: "Courier New", Courier, Freemono, "Nimbus Mono L", monospace;
 
 @google_blue: #0048f1;
+@twitter_blue: #57bcff;
 @google_red: #ea2434;
 @google_orange: #f8a912;
 @google_green: #01a514;
@@ -20,7 +21,6 @@ a {
 	color: @google_orange;
 	text-decoration: none;
 	outline: none;
-	&.hash { color: @google_green; }
 	img { border: none; vertical-align: middle; }
 }
 
@@ -47,15 +47,20 @@ h1 {
 
 p {
 	margin: 1em 0;
-	min-height: 3em;
-	img { float: left; }
 	&.error { color: @google_red; }
-    span {
-		display: block;
-		padding-left: 3.8em;
-		color: @tweet;
-		> span { display: inline; padding: 0; color: @text; }
-    }
+	&.tweet {
+		min-height: 3em;
+		img { float: left; }
+		span {
+			display: block;
+			padding-left: 3.8em;
+			color: @tweet;
+			> span { display: inline; padding: 0; color: @text; }
+		}
+		a.hash { color: @google_green; }
+		a.reply, a.retweet, a.post, a.cancel { color: @twitter_blue; }
+		a.post, a.cancel { display: none; }
+	}
 }
 
 input {
@@ -64,5 +69,9 @@ input {
 	color: @google_green;
     background: transparent;
 	border: none;
+}
+textarea {
+	display: block;
+	&.text { display: none; }
 }
 
