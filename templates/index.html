@@ -11,7 +11,7 @@
         Results within {{ radius }} around {{ location }}<br>
         Product use GeoLite data created by <a href="http://www.maxmind.com">MaxMind</a>
     </small>
-    <p id="error" class="error"></p>
+    <p id="message"></p>
     {% for obj in collection %}
         <p id="{{ obj.id }}" class="tweet">
             <img src="{{ obj.profile_image_url }}">
@@ -20,12 +20,12 @@
                 <span>{{ obj.source }}, {{ obj.created_at|timesince }}</span><br>
                 {{ obj.text|twitterize|urlize }}<br>
 {#                <br>{{ obj.entities|pprint }}#}
-{#                <small>{% for k,v in obj.__dict__.items() %}{{ k }}, {% endfor %}</small>#}
+{#                <small>{% for k,v in obj.__dict__.items() %}{{ k }}: {{ v|pprint }}, {% endfor %}</small>#}
                 <a href="#" class="reply">reply</a>
                 <a href="#" class="retweet">retweet</a>
                 <textarea class="text"></textarea>
-                <a href="#" class="post">post</a>
                 <a href="#" class="cancel">cancel</a>
+                <a href="#" class="post">post</a> <span class="num"></span>
             </span>
         </p>
     {% else %}

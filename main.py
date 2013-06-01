@@ -90,7 +90,7 @@ class BaseHandler(webapp2.RequestHandler):
         if isinstance(exception, webapp2.HTTPException):
             code = exception.code
             data['error'] =  exception
-        elif isinstance(exception, tweepy.error.TweepError):
+        elif isinstance(exception, tweepy.TweepError):
             data['lines'] = ''.join(traceback.format_exception(*sys.exc_info()))
             try:
                 data['error'] = '{code}: {message}'.format(**exception[0][0])
@@ -205,12 +205,12 @@ class Retweet(BaseHandler):
         id = self.request.get('id')
         try:
             status = self.api.retweet(id=id, trim_user=False)
-            self.render_json({'success': True})
-        except tweepy.error.TweepError, e:
-            self.render_json({'success': False, 'message': e})
-        # for k,v in status.__dict__.items():
-        #     logging.error('{0} {1}'.format(k, v))
-
+            self.render_json({'success': 'success', 'message': 'Retweeting successful'})
+        except tweepy.TweepError, e:
+            try:
+                self.render_json({'success': 'error', 'message': '{code}: {message}'.format(**e[0][0])})
+            except TypeError:
+                self.render_json({'success': 'error', 'message': e.capitalize()})
 
 
 class Reply(BaseHandler):
@@ -219,8 +219,14 @@ class Reply(BaseHandler):
         id = self.request.get('id')
         from_user = self.request.get('from')
         text = self.request.get('text', '')  # from post 140 chars max
-        status = self.api.update_status(in_reply_to_status_id=id, status='{0} {1}'.format(from_user, text))
-        self.render_json({'success': True})
+        try:
+            status = self.api.update_status(in_reply_to_status_id=id, status='{0} {1}'.format(from_user, text))
+            self.render_json({'success': 'success', 'message': 'Reply successful'})
+        except tweepy.TweepError, e:
+            try:
+                self.render_json({'success': 'error', 'message': '{code}: {message}'.format(**e[0][0])})
+            except TypeError:
+                self.render_json({'success': 'error', 'message': e.capitalize()})
 
 CONFIG = {
     'webapp2_extras.jinja2': {

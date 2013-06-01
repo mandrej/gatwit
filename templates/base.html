@@ -24,6 +24,17 @@
     </div>
     <script src="/static/zepto.min.js"></script>
     <script>
+        function message(className, text) {
+            $('#message').addClass(className).text(text);
+            setTimeout(function() {
+                $('#message').removeClass(className).text('');
+            }, 2000)
+        }
+        $('.text').keyup(function() {
+            var max = 140;
+            var tweet = $(this).closest('.tweet')[0];
+            $(tweet).find('.num').text(max - $(this).val().length);
+        });
         $('.reply').on('click', function() {
             $(this).closest('.tweet').find('.text, .post, .cancel').toggle();
         });
@@ -35,8 +46,10 @@
             var from = $(tweet).find('.from').text();
             var text = $(tweet).find('.text').val(); // 140 chars max
             $.post('/reply', {id: tweet.id, from: from, text: text}, function(data, status, xhr) {
+                var json = JSON.parse(data);
                 if (status == 'success') {
                     $(tweet).find('.text, .post, .cancel').toggle();
+                    message(json.success, json.message);
                 }
             })
         });
@@ -44,8 +57,8 @@
             var tweet = $(this).closest('.tweet')[0];
             $.post('/retweet', {id: tweet.id}, function(data, status, xhr) {
                 var json = JSON.parse(data);
-                if (status != 'success') {
-                    $('#error').text(data.message);
+                if (status == 'success') {
+                    message(json.success, json.message);
                 }
             })
         });
