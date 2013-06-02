@@ -95,7 +95,7 @@ class BaseHandler(webapp2.RequestHandler):
             try:
                 data['error'] = '{code}: {message}'.format(**exception[0][0])
             except TypeError:
-                data['error'] = exception
+                data['error'] = exception.reason
         else:
             data['error'] = exception
             data['lines'] = ''.join(traceback.format_exception(*sys.exc_info()))
@@ -210,7 +210,7 @@ class Retweet(BaseHandler):
             try:
                 self.render_json({'success': 'error', 'message': '{code}: {message}'.format(**e[0][0])})
             except TypeError:
-                self.render_json({'success': 'error', 'message': e.capitalize()})
+                self.render_json({'success': 'error', 'message': e.reason.capitalize()})
 
 
 class Reply(BaseHandler):
@@ -226,7 +226,7 @@ class Reply(BaseHandler):
             try:
                 self.render_json({'success': 'error', 'message': '{code}: {message}'.format(**e[0][0])})
             except TypeError:
-                self.render_json({'success': 'error', 'message': e.capitalize()})
+                self.render_json({'success': 'error', 'message': e.reason.capitalize()})
 
 CONFIG = {
     'webapp2_extras.jinja2': {

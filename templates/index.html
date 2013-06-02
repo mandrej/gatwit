@@ -12,23 +12,25 @@
         Product use GeoLite data created by <a href="http://www.maxmind.com">MaxMind</a>
     </small>
     <p id="message"></p>
-    {% for obj in collection %}
-        <p id="{{ obj.id }}" class="tweet">
-            <img src="{{ obj.profile_image_url }}">
-            <span>
-                <a href="https://twitter.com/{{ obj.from_user }}" class="from">@{{ obj.from_user }}</a>,
-                <span>{{ obj.source }}, {{ obj.created_at|timesince }}</span><br>
-                {{ obj.text|twitterize|urlize }}<br>
-{#                <br>{{ obj.entities|pprint }}#}
-{#                <small>{% for k,v in obj.__dict__.items() %}{{ k }}: {{ v|pprint }}, {% endfor %}</small>#}
-                <a href="#" class="reply">reply</a>
-                <a href="#" class="retweet">retweet</a>
-                <textarea class="text"></textarea>
-                <a href="#" class="cancel">cancel</a>
-                <a href="#" class="post">post</a> <span class="num"></span>
-            </span>
-        </p>
-    {% else %}
-        <p>No search results</p>
-    {% endfor %}
+    <div id="main">
+        {% for obj in collection %}
+            <p id="{{ obj.id }}" class="tweet">
+                <img src="{{ obj.profile_image_url }}">
+                <span>
+                    <a href="https://twitter.com/{{ obj.from_user }}" class="from">@{{ obj.from_user }}</a>,
+                    <span>{{ obj.source }}, {{ obj.created_at|timesince }}</span><br>
+                    {{ obj.text|twitterize|urlize }}<br>
+    {#                <br>{{ obj.entities|pprint }}#}
+    {#                <small>{% for k,v in obj.__dict__.items() %}{{ k }}: {{ v|pprint }}, {% endfor %}</small>#}
+                    <a href="#" class="reply">reply</a>
+                    <a href="#" class="retweet">retweet</a>
+                    <textarea class="text"></textarea>
+                    <a href="#" class="cancel">cancel</a>
+                    <a href="#" class="post">post</a> <span class="num"></span>
+                </span>
+            </p>
+        {% else %}
+            <p>No search results</p>
+        {% endfor %}
+    </div>
 {% endblock %}
