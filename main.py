@@ -145,7 +145,7 @@ class RequestAuthorization(BaseHandler):
     @decorator.oauth_handler
     def get(self):
         # Build a new oauth handler and display authorization url to user.
-        auth_url = self.auth.get_authorization_url()
+        auth_url = self.auth.get_authorization_url(True)
         self.session['token_key'] = self.auth.request_token.key
         self.session['token_secret'] = self.auth.request_token.secret
         self.redirect(auth_url)
@@ -190,7 +190,7 @@ class Index(BaseHandler):
                 '{latitude:.4f},{longitude:.4f}'.format(**record),
                 RADIUS)
 
-        collection = self.api.search(q=query, geocode=geocode, rpp=10, include_entities=True, page=page, retry_count=3)
+        collection = self.api.search(q=query, geocode=geocode, rpp=10, include_entities=True, page=page)
         self.render_template('index.html', {
             'collection': collection,
             'query': query,
@@ -237,10 +237,6 @@ CONFIG = {
             'autoescape': True,
             'extensions': ['jinja2.ext.autoescape', 'jinja2.ext.with_']
         },
-    },
-    'webapp2_extras.auth': {
-        'user_model': 'models.User',
-        'user_attributes': ['name', 'token_key', 'token_secret', 'access_key', 'access_secret']
     },
     'webapp2_extras.sessions': {
         'secret_key': 'XbOgZLNTzv5OoO2tBAM+Rw5ewX5d3TxVgvSfRJtc1W4=',
