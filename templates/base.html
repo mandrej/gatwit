@@ -5,13 +5,13 @@
 	<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="apple-mobile-web-app-capable" content="yes">
 	<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>{{ title }}</title>
+    <title>{% if user %}{{ user.screen_name }}{% endif %} lajna</title>
     <link type="text/css" rel="stylesheet" href="/static/css/base.css"/>
 </head>
 <body>
     <div class="page">
         <h1>
-            <a href="/">{{ title }}</a>
+            <a href="/">{% if user %}{{ user.screen_name }}{% endif %} lajna</a>
             {% block paginator %}{% endblock %}
         </h1>
         <form action="/" method="get">

@@ -16,7 +16,6 @@ from webapp2 import WSGIApplication
 from webapp2_extras import sessions, jinja2
 from jinja2.utils import Markup
 
-TITLE = 'lajna'
 CONSUMER_KEY = '6GuIfrWPKuAp7UDMT17GA'
 CONSUMER_SECRET = '6IqWHpS3MkU2XsnIzehvfctTHnqEs3hOPWFznijRzG4'
 if os.environ.get('SERVER_SOFTWARE', '').startswith('Dev'):
@@ -86,10 +85,10 @@ class BaseHandler(webapp2.RequestHandler):
 
     def handle_exception(self, exception, debug):
         code = 500
-        data = {'title': TITLE}
+        data = {}
         if isinstance(exception, webapp2.HTTPException):
             code = exception.code
-            data['error'] =  exception
+            data['error'] = exception
         elif isinstance(exception, tweepy.TweepError):
             data['lines'] = ''.join(traceback.format_exception(*sys.exc_info()))
             try:
@@ -178,7 +177,8 @@ class Index(BaseHandler):
 
         user = self.session.get('user')
         if user is None:
-            user = self.session['user'] = self.api.me()
+            user = self.api.me()
+            self.session['user'] = user
 
         geocode = self.request.get('geocode') or self.session.get('geocode')
         if geocode is None:
@@ -194,9 +194,8 @@ class Index(BaseHandler):
         self.render_template('index.html', {
             'collection': collection,
             'query': query,
-            'location': user.location,
             'radius': RADIUS,
-            'title': '{0} {1}'.format(user.screen_name, TITLE)})
+            'user': user})
 
 
 class Retweet(BaseHandler):
@@ -238,6 +237,10 @@ CONFIG = {
             'autoescape': True,
             'extensions': ['jinja2.ext.autoescape', 'jinja2.ext.with_']
         },
+    },
+    'webapp2_extras.auth': {
+        'user_model': 'models.User',
+        'user_attributes': ['name', 'token_key', 'token_secret', 'access_key', 'access_secret']
     },
     'webapp2_extras.sessions': {
         'secret_key': 'XbOgZLNTzv5OoO2tBAM+Rw5ewX5d3TxVgvSfRJtc1W4=',
