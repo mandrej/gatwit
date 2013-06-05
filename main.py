@@ -16,11 +16,11 @@ from webapp2 import WSGIApplication
 from webapp2_extras import sessions, jinja2
 from jinja2.utils import Markup
 
-CONSUMER_KEY = '6GuIfrWPKuAp7UDMT17GA'
-CONSUMER_SECRET = '6IqWHpS3MkU2XsnIzehvfctTHnqEs3hOPWFznijRzG4'
+CONSUMER_KEY = 'uvkMU4MFVn2N3lgizdFRfQ'
+CONSUMER_SECRET = 'HGsVbzsYjCDhI0Y6u2vurlvEWrFqBxZkkQAu2ASnQ'
 if os.environ.get('SERVER_SOFTWARE', '').startswith('Dev'):
     DEVEL = True
-    CALLBACK = 'http://127.0.0.1:8080/oauth/callback'
+    CALLBACK = 'http://localhost:8080/oauth/callback'
 else:
     DEVEL = False
     CALLBACK = 'http://gatwitbot.appspot.com/oauth/callback'
@@ -89,7 +89,7 @@ class BaseHandler(webapp2.RequestHandler):
         if isinstance(exception, webapp2.HTTPException):
             code = exception.code
             data['error'] = exception
-        elif isinstance(exception, tweepy.TweepError):
+        elif isinstance(exception, tweepy.error.TweepError):
             data['lines'] = ''.join(traceback.format_exception(*sys.exc_info()))
             try:
                 data['error'] = '{code}: {message}'.format(**exception[0][0])
@@ -111,61 +111,47 @@ class BaseHandler(webapp2.RequestHandler):
 
 
 class TwitterDecorator(object):
-    def __init__(self, **kwargs):
-        vars(self).update(kwargs)  # REMEMBER THIS
-        self.auth = tweepy.OAuthHandler(self.consumer_key, self.consumer_secret, self.callback)
-
-    def oauth_handler(self, method):
-        def wrapper(handler, *args):
-            handler.auth = self.auth
-            method(handler, *args)
-        return wrapper
+    def __init__(self):
+        self.auth = tweepy.OAuthHandler(CONSUMER_KEY, CONSUMER_SECRET, CALLBACK)
 
     def oauth_required(self, method):
         def wrapper(handler, *args):
-            tokens = [
-                # handler.session.get('token_key'),
-                # handler.session.get('token_secret'),
-                handler.session.get('access_key'),
-                handler.session.get('access_secret')
-            ]
-            if any(tok is None for tok in tokens):
+            if handler.session.get('access_token') is None:
                 return handler.redirect('/oauth')
 
-            # self.auth.set_request_token(handler.session.get('token_key'), handler.session.get('token_secret'))
-            self.auth.set_access_token(handler.session.get('access_key'), handler.session.get('access_secret'))
+            self.auth.set_access_token(*handler.session.get('access_token'))
             handler.api = tweepy.API(self.auth)
             method(handler, *args)
         return wrapper
 
-decorator = TwitterDecorator(consumer_key=CONSUMER_KEY, consumer_secret=CONSUMER_SECRET, callback=CALLBACK)
+decorator = TwitterDecorator()
 
 
 class RequestAuthorization(BaseHandler):
-    @decorator.oauth_handler
     def get(self):
+        self.session['request_token'] = None
+        self.session['access_token'] = None
         # Build a new oauth handler and display authorization url to user.
-        auth_url = self.auth.get_authorization_url(True)
-        self.session['token_key'] = self.auth.request_token.key
-        self.session['token_secret'] = self.auth.request_token.secret
+        auth = decorator.auth
+        auth_url = auth.get_authorization_url(True)
+        self.session['request_token'] = (auth.request_token.key, auth.request_token.secret)
         self.redirect(auth_url)
 
 
 class CallbackPage(BaseHandler):
-    @decorator.oauth_handler
     def get(self):
-        oauth_token = self.request.get("oauth_token", None)
-        oauth_verifier = self.request.get("oauth_verifier", None)
-        if oauth_token is None:
+        oauth_verifier = self.request.get('oauth_verifier', None)
+        if oauth_verifier is None:
             self.abort(500)
 
         # Rebuild the auth handler
-        self.auth.set_request_token(self.session.get('token_key'), self.session.get('token_secret'))
+        auth = decorator.auth
+        auth.set_request_token(*self.session.get('request_token'))
+        self.session['request_token'] = None
 
         # Fetch the access token
-        self.auth.get_access_token(oauth_verifier)
-        self.session['access_key'] = self.auth.access_token.key
-        self.session['access_secret'] = self.auth.access_token.secret
+        auth.get_access_token(oauth_verifier)
+        self.session['access_token'] = (auth.access_token.key, auth.access_token.secret)
         self.redirect('/')
 
 
