@@ -9,15 +9,18 @@ import json
 import webapp2
 import tweepy
 import urllib
+import urllib2
 import logging
 import datetime
 import pygeoip
+import base64
 from webapp2 import WSGIApplication
 from webapp2_extras import sessions, jinja2
 from jinja2.utils import Markup
 
 CONSUMER_KEY = 'uvkMU4MFVn2N3lgizdFRfQ'
 CONSUMER_SECRET = 'HGsVbzsYjCDhI0Y6u2vurlvEWrFqBxZkkQAu2ASnQ'
+TOKEN_URL = 'https://api.twitter.com/oauth2/token'
 if os.environ.get('SERVER_SOFTWARE', '').startswith('Dev'):
     DEVEL = True
     CALLBACK = 'http://localhost:8080/oauth/callback'
@@ -57,6 +60,25 @@ def timesince_jinja(value, default="just now"):
         if period:
             return "%d %s ago" % (period, singular if period == 1 else plural)
     return default
+
+
+class AppAuthHandler(tweepy.auth.AuthHandler):
+    def __init__(self, consumer_key, consumer_secret):
+        token_credential = urllib.quote(consumer_key) + ':' + urllib.quote(consumer_secret)
+        credential = base64.b64encode(token_credential)
+
+        value = {'grant_type': 'client_credentials'}
+        data = urllib.urlencode(value)
+        req = urllib2.Request(TOKEN_URL)
+        req.add_header('Authorization', 'Basic ' + credential)
+        req.add_header('Content-Type', 'application/x-www-form-urlencoded;charset=UTF-8')
+
+        response = urllib2.urlopen(req, data)
+        json_response = json.loads(response.read())
+        self._access_token = json_response['access_token']
+
+    def apply_auth(self, url, method, headers, parameters):
+        headers['Authorization'] = 'Bearer ' + self._access_token
 
 
 class BaseHandler(webapp2.RequestHandler):
@@ -110,108 +132,125 @@ class BaseHandler(webapp2.RequestHandler):
         self.response.write(json.dumps(data))
 
 
-class TwitterDecorator(object):
-    def __init__(self):
-        self.auth = tweepy.OAuthHandler(CONSUMER_KEY, CONSUMER_SECRET, CALLBACK)
-
-    def oauth_required(self, method):
-        def wrapper(handler, *args):
-            if handler.session.get('access_token') is None:
-                return handler.redirect('/oauth')
-
-            self.auth.set_access_token(*handler.session.get('access_token'))
-            handler.api = tweepy.API(self.auth)
-            method(handler, *args)
-        return wrapper
-
-decorator = TwitterDecorator()
-
-
-class RequestAuthorization(BaseHandler):
-    def get(self):
-        self.session['request_token'] = None
-        self.session['access_token'] = None
-        # Build a new oauth handler and display authorization url to user.
-        auth = decorator.auth
-        auth_url = auth.get_authorization_url(True)
-        self.session['request_token'] = (auth.request_token.key, auth.request_token.secret)
-        self.redirect(auth_url)
+# class TwitterDecorator(object):
+#     def __init__(self):
+#         self.auth = tweepy.OAuthHandler(CONSUMER_KEY, CONSUMER_SECRET, CALLBACK)
+#
+#     def oauth_required(self, method):
+#         def wrapper(handler, *args):
+#             if handler.session.get('access_token') is None:
+#                 return handler.redirect('/oauth')
+#
+#             self.auth.set_access_token(*handler.session.get('access_token'))
+#             handler.api = tweepy.API(self.auth)
+#             logging.error(handler.api)
+#             method(handler, *args)
+#         return wrapper
+#
+# decorator = TwitterDecorator()
 
 
-class CallbackPage(BaseHandler):
-    def get(self):
-        oauth_verifier = self.request.get('oauth_verifier', None)
-        if oauth_verifier is None:
-            self.abort(500)
+# class RequestAuthorization(BaseHandler):
+#     def get(self):
+#         self.session['request_token'] = None
+#         self.session['access_token'] = None
+#         logging.error(self.request.params)
+#         logging.error(self.request.cookies)
+#         # Build a new oauth handler and display authorization url to user.
+#         auth = decorator.auth
+#         auth_url = auth.get_authorization_url(True)
+#         self.session['request_token'] = (auth.request_token.key, auth.request_token.secret)
+#         self.redirect(auth_url)
 
-        # Rebuild the auth handler
-        auth = decorator.auth
-        auth.set_request_token(*self.session.get('request_token'))
-        self.session['request_token'] = None
 
-        # Fetch the access token
-        auth.get_access_token(oauth_verifier)
-        self.session['access_token'] = (auth.access_token.key, auth.access_token.secret)
-        self.redirect('/')
+# class CallbackPage(BaseHandler):
+#     def get(self):
+#         oauth_verifier = self.request.get('oauth_verifier', None)
+#         if oauth_verifier is None:
+#             self.abort(500)
+#
+#         # Rebuild the auth handler
+#         auth = decorator.auth
+#         auth.set_request_token(*self.session.get('request_token'))
+#         self.session['request_token'] = None
+#
+#         # Fetch the access token
+#         auth.get_access_token(oauth_verifier)
+#         self.session['access_token'] = (auth.access_token.key, auth.access_token.secret)
+#         self.redirect('/')
 
 
 class Index(BaseHandler):
-    @decorator.oauth_required
+    # @decorator.oauth_required
     def get(self):
         page = int(self.request.get('page', 1))
         query = self.request.get('q', '')
 
-        user = self.session.get('user')
-        if user is None:
-            user = self.api.me()
-            self.session['user'] = user
+        # user = self.session.get('user')
+        # if user is None:
+        #     user = self.api.me()
+        #     self.session['user'] = user
 
-        geocode = self.request.get('geocode') or self.session.get('geocode')
-        if geocode is None:
-            if DEVEL:
-                record = GI.record_by_addr(LOCAL_IP)
-            else:
-                record = GI.record_by_addr(self.request.remote_addr)
-            geocode = self.session['geocode'] = '{0},{1}'.format(
-                '{latitude:.4f},{longitude:.4f}'.format(**record),
-                RADIUS)
+        # geocode = self.request.get('geocode') or self.session.get('geocode')
+        # if geocode is None:
+        if DEVEL:
+            record = GI.record_by_addr(LOCAL_IP)
+        else:
+            record = GI.record_by_addr(self.request.remote_addr)
 
-        collection = self.api.search(q=query, geocode=geocode, rpp=10, include_entities=True, page=page)
+        geocode = self.session['geocode'] = '{0},{1}'.format(
+            '{latitude:.4f},{longitude:.4f}'.format(**record),
+            RADIUS)
+
+
+
+        auth = AppAuthHandler(CONSUMER_KEY, CONSUMER_SECRET)
+        api = tweepy.API(auth)
+
+        # arg = {'q': query, 'geocode': geocode, 'rpp': 10, 'include_entities': True}
+        # arg = {'q': 'mandrej'}
+
+        collection = api.search(q=query, geocode=geocode, rpp=10, include_entities=True)
+        # collection = tweepy.Cursor(api.search, **arg).items(10)
+        # for x in collection:
+        #     logging.error(x.text)
         self.render_template('index.html', {
             'collection': collection,
             'query': query,
             'radius': RADIUS,
-            'user': user})
+            'location': record['city']
+            # 'user': user
+        })
 
 
-class Retweet(BaseHandler):
-    @decorator.oauth_required
-    def post(self):
-        id = self.request.get('id')
-        try:
-            status = self.api.retweet(id=id, trim_user=False)
-            self.render_json({'success': 'success', 'message': 'Retweeting successful'})
-        except tweepy.TweepError, e:
-            try:
-                self.render_json({'success': 'error', 'message': '{code}: {message}'.format(**e[0][0])})
-            except TypeError:
-                self.render_json({'success': 'error', 'message': e.reason.capitalize()})
+# class Retweet(BaseHandler):
+#     @decorator.oauth_required
+#     def post(self):
+#         id = self.request.get('id')
+#         try:
+#             status = self.api.retweet(id=id, trim_user=False)
+#             self.render_json({'success': 'success', 'message': 'Retweeting successful'})
+#         except tweepy.TweepError, e:
+#             try:
+#                 self.render_json({'success': 'error', 'message': '{code}: {message}'.format(**e[0][0])})
+#             except TypeError:
+#                 self.render_json({'success': 'error', 'message': e.reason.capitalize()})
 
 
-class Reply(BaseHandler):
-    @decorator.oauth_required
-    def post(self):
-        id = self.request.get('id')
-        from_user = self.request.get('from')
-        text = self.request.get('text', '')  # from post 140 chars max
-        try:
-            status = self.api.update_status(in_reply_to_status_id=id, status='{0} {1}'.format(from_user, text))
-            self.render_json({'success': 'success', 'message': 'Reply successful'})
-        except tweepy.TweepError, e:
-            try:
-                self.render_json({'success': 'error', 'message': '{code}: {message}'.format(**e[0][0])})
-            except TypeError:
-                self.render_json({'success': 'error', 'message': e.reason.capitalize()})
+# class Reply(BaseHandler):
+#     @decorator.oauth_required
+#     def post(self):
+#         id = self.request.get('id')
+#         from_user = self.request.get('from')
+#         text = self.request.get('text', '')  # from post 140 chars max
+#         try:
+#             status = self.api.update_status(in_reply_to_status_id=id, status='{0} {1}'.format(from_user, text))
+#             self.render_json({'success': 'success', 'message': 'Reply successful'})
+#         except tweepy.TweepError, e:
+#             try:
+#                 self.render_json({'success': 'error', 'message': '{code}: {message}'.format(**e[0][0])})
+#             except TypeError:
+#                 self.render_json({'success': 'error', 'message': e.reason.capitalize()})
 
 CONFIG = {
     'webapp2_extras.jinja2': {
@@ -227,12 +266,13 @@ CONFIG = {
     'webapp2_extras.sessions': {
         'secret_key': 'XbOgZLNTzv5OoO2tBAM+Rw5ewX5d3TxVgvSfRJtc1W4=',
         'backends': {'memcache': 'webapp2_extras.appengine.sessions_memcache.MemcacheSessionFactory'}
+        # 'backends': {'datastore': 'webapp2_extras.appengine.sessions_ndb.DatastoreSessionFactory'}
     }
 }
 app = WSGIApplication([
     (r'/', Index),
-    (r'/oauth', RequestAuthorization),
-    (r'/oauth/callback', CallbackPage),
-    (r'/retweet', Retweet),
-    (r'/reply', Reply),
+    # (r'/oauth', RequestAuthorization),
+    # (r'/oauth/callback', CallbackPage),
+    # (r'/retweet', Retweet),
+    # (r'/reply', Reply),
 ], config=CONFIG, debug=DEVEL)
