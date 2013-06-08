@@ -14,8 +14,9 @@ import logging
 import datetime
 import pygeoip
 import base64
+from tweepy.cache import MemoryCache
 from webapp2 import WSGIApplication
-from webapp2_extras import sessions, jinja2
+from webapp2_extras import jinja2
 from jinja2.utils import Markup
 
 CONSUMER_KEY = 'uvkMU4MFVn2N3lgizdFRfQ'
@@ -25,6 +26,7 @@ DEVEL = os.environ.get('SERVER_SOFTWARE', '').startswith('Dev')
 RADIUS = '10mi'
 GI = pygeoip.GeoIP('pygeoip/GeoLiteCity.dat')
 LOCAL_IP = '178.148.225.25'
+CACHE = MemoryCache(600)
 
 
 def twitterize(text):
@@ -77,25 +79,9 @@ class AppAuthHandler(tweepy.auth.AuthHandler):
 
 
 class BaseHandler(webapp2.RequestHandler):
-    def dispatch(self):
-        self.session_store = sessions.get_store(request=self.request)
-        try:
-            webapp2.RequestHandler.dispatch(self)
-        finally:
-            self.session_store.save_sessions(self.response)
-
     @webapp2.cached_property
     def jinja2(self):
         return jinja2.get_jinja2(app=self.app)
-
-    @webapp2.cached_property
-    def session(self):
-        """Returns a session using the default cookie key"""
-        return self.session_store.get_session(backend='memcache')
-
-    @webapp2.cached_property
-    def session_store(self):
-        return sessions.get_store(request=self.request)
 
     def handle_exception(self, exception, debug):
         code = 500
@@ -119,10 +105,6 @@ class BaseHandler(webapp2.RequestHandler):
     def render_template(self, filename, kwargs):
         self.response.write(self.jinja2.render_template(filename, **kwargs))
 
-    def render_json(self, data):
-        self.response.content_type = 'application/json; charset=utf-8'
-        self.response.write(json.dumps(data))
-
 
 class Index(BaseHandler):
     def get(self):
@@ -133,20 +115,20 @@ class Index(BaseHandler):
             record = GI.record_by_addr(LOCAL_IP)
         geocode = '{0},{1}'.format('{latitude:.4f},{longitude:.4f}'.format(**record), RADIUS)
 
-        auth = AppAuthHandler(CONSUMER_KEY, CONSUMER_SECRET)
-        # support for multiple authentication handlers
-        # retry 3 times with 5 seconds delay when getting these error codes.
-        # For more details see https://dev.twitter.com/docs/error-codes-responses
-        # monitor remaining calls and block until replenished
-        # http://www.nirg.net/blog/2013/04/using-tweepy/
-        api = tweepy.API(
-            [auth],
-            retry_count=3,
-            retry_delay=5,
-            retry_errors=set([401, 404, 500, 503]),
-            monitor_rate_limit=True,
-            wait_on_rate_limit=True
-        )
+        api = CACHE.get('api')
+        if api is None:
+            auth = AppAuthHandler(CONSUMER_KEY, CONSUMER_SECRET)
+            # http://www.nirg.net/blog/2013/04/using-tweepy/
+            api = tweepy.API(
+                [auth],
+                retry_count=3,
+                retry_delay=5,
+                retry_errors=set([401, 404, 500, 503]),
+                monitor_rate_limit=True,
+                wait_on_rate_limit=True
+            )
+            CACHE.store('api', api)
+
         collection = api.search(q=query,
                                 geocode=geocode,
                                 count=10,
@@ -173,10 +155,6 @@ CONFIG = {
             'autoescape': True,
             'extensions': ['jinja2.ext.autoescape', 'jinja2.ext.with_']
         },
-    },
-    'webapp2_extras.sessions': {
-        'secret_key': 'XbOgZLNTzv5OoO2tBAM+Rw5ewX5d3TxVgvSfRJtc1W4=',
-        'backends': {'memcache': 'webapp2_extras.appengine.sessions_memcache.MemcacheSessionFactory'}
     }
 }
 app = WSGIApplication([
