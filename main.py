@@ -127,6 +127,7 @@ class BaseHandler(webapp2.RequestHandler):
 class Index(BaseHandler):
     def get(self):
         query = self.request.get('q', '')
+
         record = GI.record_by_addr(self.request.remote_addr)
         if 'latitude' not in record:
             record = GI.record_by_addr(LOCAL_IP)

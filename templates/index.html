@@ -8,16 +8,16 @@
 
 {% block content %}
     <small>
-        Results within {{ radius }} around {{ location }}<br>
+        Results within {{ radius }} around {{ location }} / {{ collection.completed_in }}s<br>
         Product use GeoLite data created by <a href="http://www.maxmind.com">MaxMind</a>
     </small>
     <p id="message"></p>
     <div id="main">
         {% for obj in collection %}
             <p id="{{ obj.id }}" class="tweet">
-                <img src="{{ obj.user.profile_image_url }}">
+                <img src="{{ obj.author.profile_image_url }}">
                 <span>
-                    <a href="https://twitter.com/{{ obj.user.screen_name }}" class="from">@{{ obj.user.screen_name|default }}</a>,
+                    <a href="https://twitter.com/{{ obj.author.screen_name }}" class="from">@{{ obj.author.screen_name|default }} </a>,
                     <span>{{ obj.source }}, {{ obj.created_at|timesince }}</span><br>
                     {{ obj.text|twitterize|urlize }}
 {#                    <br>{{ obj.entities|pprint }}#}
