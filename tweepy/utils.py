@@ -21,17 +21,42 @@ def parse_datetime(string):
     locale.setlocale(locale.LC_TIME, '')
     return date
 
+from HTMLParser import HTMLParser
+
+class MLStripper(HTMLParser):
+    def __init__(self):
+        self.reset()
+        self.fed = []
+    def handle_data(self, d):
+        self.fed.append(d)
+    def get_data(self):
+        return ''.join(self.fed)
+
+#def parse_html_value(html):
+#    return html[html.find('>')+1:html.rfind('<')]
 
 def parse_html_value(html):
-
-    return html[html.find('>')+1:html.rfind('<')]
-
+    s = MLStripper()
+    s.feed(html)
+    return s.get_data()
 
 def parse_a_href(atag):
 
     start = atag.find('"') + 1
     end = atag.find('"', start)
     return atag[start:end]
+
+
+def parse_search_datetime(string):
+    # Set locale for date parsing
+    locale.setlocale(locale.LC_TIME, 'C')
+
+    # We must parse datetime this way to work in python 2.4
+    date = datetime(*(time.strptime(string, '%a, %d %b %Y %H:%M:%S +0000')[0:6]))
+
+    # Reset locale back to the default setting
+    locale.setlocale(locale.LC_TIME, '')
+    return date
 
 
 def unescape_html(text):

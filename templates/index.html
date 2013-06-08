@@ -1,8 +1,8 @@
 {% extends "base.html" %}
 
 {% block paginator %}
-    {% if collection.next_page %}
-        <a href="{{ collection.next_page }}" class="next icon-chevron-right icon-2x"></a>
+    {% if next %}
+        <a href="{{ next }}" class="next icon-chevron-right icon-2x"></a>
     {% endif %}
 {% endblock %}
 
@@ -15,18 +15,13 @@
     <div id="main">
         {% for obj in collection %}
             <p id="{{ obj.id }}" class="tweet">
-                <img src="{{ obj.profile_image_url }}">
+                <img src="{{ obj.user.profile_image_url }}">
                 <span>
-                    <a href="https://twitter.com/{{ obj.from_user }}" class="from">@{{ obj.from_user }}</a>,
+                    <a href="https://twitter.com/{{ obj.user.screen_name }}" class="from">@{{ obj.user.screen_name|default }}</a>,
                     <span>{{ obj.source }}, {{ obj.created_at|timesince }}</span><br>
-                    {{ obj.text|twitterize|urlize }}<br>
-    {#                <br>{{ obj.entities|pprint }}#}
-    {#                <small>{% for k,v in obj.__dict__.items() %}{{ k }}: {{ v|pprint }}, {% endfor %}</small>#}
-                    <a href="#" class="reply">reply</a>
-                    <a href="#" class="retweet">retweet</a>
-                    <textarea class="text"></textarea>
-                    <a href="#" class="cancel">cancel</a>
-                    <a href="#" class="post">post</a> <span class="num"></span>
+                    {{ obj.text|twitterize|urlize }}
+{#                    <br>{{ obj.entities|pprint }}#}
+{#                    <br><small>{% for k,v in obj.__dict__.items() %}{{ k }}: {{ v|pprint }}, {% endfor %}</small>#}
                 </span>
             </p>
         {% else %}

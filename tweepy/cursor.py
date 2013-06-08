@@ -11,8 +11,8 @@ class Cursor(object):
         if hasattr(method, 'pagination_mode'):
             if method.pagination_mode == 'cursor':
                 self.iterator = CursorIterator(method, args, kargs)
-            elif method.pagination_mode == 'search':
-                self.iterator = SearchResultsIterator(method, args, kargs)
+            elif method.pagination_mode == 'max_id':
+                self.iterator = MaxIdIterator(method, args, kargs)
             else:
                 self.iterator = PageIterator(method, args, kargs)
         else:
@@ -84,8 +84,10 @@ class PageIterator(BaseIterator):
 
     def next(self):
         self.current_page += 1
+        if self.limit > 0 and self.current_page > self.limit:
+            raise StopIteration
         items = self.method(page=self.current_page, *self.args, **self.kargs)
-        if len(items) == 0 or (self.limit > 0 and self.current_page > self.limit):
+        if len(items) == 0: 
             raise StopIteration
         return items
 
@@ -128,36 +130,29 @@ class ItemIterator(BaseIterator):
         self.count -= 1
         return self.current_page[self.page_index]
 
-
-class SearchResultsIterator(PageIterator):
-    """ Paginate through search results.
-
-        GET Search results do not explicitly support pagination.
-        See: https://dev.twitter.com/issues/513
-
-        We'll use a simplistic forward paging scheme, by storing the oldest id
-        returned from the last search and using that in the max_id on the next
-        page request.
+class MaxIdIterator(BaseIterator):
+    """ 
+    Iterate over timelines properly using max_id.
     """
+
     def __init__(self, method, args, kargs):
-        PageIterator.__init__(self, method, args, kargs)
-        self.oldest_id = 0
-
+        kargs['max_id'] = kargs.get('max_id', None)
+        if 'page' in kargs:
+            kargs['page'] = None
+        
+        BaseIterator.__init__(self, method, args, kargs)
+        self._page_count = 0
+        
     def next(self):
-        self.current_page += 1
-
-        if (self.limit > 0 and self.current_page > self.limit):
+        if self.limit > 0 and self._page_count >= self.limit:
             raise StopIteration
-
-        if self.current_page > 1:
-            self.kargs['max_id'] = self.oldest_id
-
         items = self.method(*self.args, **self.kargs)
-        if len(items) == 0:
+        if len(items) < 1: 
             raise StopIteration
-        # Stash last result's oldest id for next page access
-        self.oldest_id = items[-1].id -1
+        
+        self.kargs['max_id'] = min([t['id'] if not hasattr(t, 'id') else t.id for t in items])-1
+        self._page_count += 1
         return items
-
+    
     def prev(self):
-        raise TweepError('search does not support reverse pagination.')
+        raise NotImplemented()

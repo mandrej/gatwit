@@ -5,13 +5,13 @@
 	<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="apple-mobile-web-app-capable" content="yes">
 	<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>{% if user %}{{ user.screen_name }}{% endif %} lajna</title>
+    <title>LAJNA</title>
     <link type="text/css" rel="stylesheet" href="/static/css/base.css"/>
 </head>
 <body>
     <div class="page">
         <h1>
-            <a href="/">{% if user %}{{ user.screen_name }}{% endif %} lajna</a>
+            <a href="/">LAJNA</a>
             {% block paginator %}{% endblock %}
         </h1>
         <form action="/" method="get">
@@ -22,46 +22,5 @@
         </form>
         {% block content %}{% endblock %}
     </div>
-    <script src="/static/zepto.min.js"></script>
-    <script>
-        function message(className, text) {
-            $('#message').addClass(className).text(text);
-            setTimeout(function() {
-                $('#message').removeClass(className).text('');
-            }, 2000)
-        }
-        $('.text').keyup(function() {
-            var max = 140;
-            var tweet = $(this).closest('.tweet')[0];
-            $(tweet).find('.num').text(max - $(this).val().length);
-        });
-        $('.reply').on('click', function() {
-            $(this).closest('.tweet').find('.text, .post, .cancel').toggle();
-        });
-        $('.cancel').on('click', function() {
-            $(this).closest('.tweet').find('.text, .post, .cancel').toggle();
-        });
-        $('.post').on('click', function() {
-            var tweet = $(this).closest('.tweet')[0];
-            var from = $(tweet).find('.from').text();
-            var text = $(tweet).find('.text').val(); // 140 chars max
-            $.post('/reply', {id: tweet.id, from: from, text: text}, function(data, status, xhr) {
-                var json = JSON.parse(data);
-                if (status == 'success') {
-                    $(tweet).find('.text, .post, .cancel').toggle();
-                    message(json.success, json.message);
-                }
-            })
-        });
-        $('.retweet').on('click', function() {
-            var tweet = $(this).closest('.tweet')[0];
-            $.post('/retweet', {id: tweet.id}, function(data, status, xhr) {
-                var json = JSON.parse(data);
-                if (status == 'success') {
-                    message(json.success, json.message);
-                }
-            })
-        });
-    </script>
 </body>
 </html>

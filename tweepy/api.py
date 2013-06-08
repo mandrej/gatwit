@@ -15,12 +15,15 @@ class API(object):
     """Twitter API"""
 
     def __init__(self, auth_handler=None,
-            host='api.twitter.com',
-             cache=None, secure=True, api_root='/1.1', search_root='',
+            host='api.twitter.com', search_host='api.twitter.com',
+             cache=None, secure=True, api_root='/1.1', search_root='/1.1',
             retry_count=0, retry_delay=0, retry_errors=None,
-            parser=None):
-        self.auth = auth_handler
+            parser=None, monitor_rate_limit=False, wait_on_rate_limit=False):
+        self.auth = auth_handler if auth_handler is None or not hasattr(auth_handler, '__iter__') else auth_handler[0]
+        self.auths = None if auth_handler is None else list(auth_handler) if hasattr(auth_handler, '__iter__') else [auth_handler]
+        self._auth_idx = None if auth_handler is None else 0
         self.host = host
+        self.search_host = search_host
         self.api_root = api_root
         self.search_root = search_root
         self.cache = cache
@@ -29,6 +32,19 @@ class API(object):
         self.retry_delay = retry_delay
         self.retry_errors = retry_errors
         self.parser = parser or ModelParser()
+        self.monitor_rate_limit = monitor_rate_limit
+        self.wait_on_rate_limit = wait_on_rate_limit
+
+    @property
+    def auth_idx(self):
+        return self._auth_idx
+
+    @auth_idx.setter
+    def auth_idx(self, value):
+        if value >= len(self.auths):
+            raise IndexError('Index out of bounds')
+        self._auth_idx = value
+        self.auth = self.auths[value]
 
     """ statuses/home_timeline """
     home_timeline = bind_api(
@@ -283,6 +299,13 @@ class API(object):
         allowed_param = ['id', 'user_id', 'screen_name', 'cursor']
     )
 
+    """ friends/list """
+    friends = bind_api(
+        path = '/friends/list.json',
+        payload_type = 'user', payload_list = True,
+        allowed_param = ['id', 'user_id', 'screen_name', 'page', 'cursor']
+    )
+
     """ friendships/incoming """
     friendships_incoming = bind_api(
         path = '/friendships/incoming.json',
@@ -302,6 +325,13 @@ class API(object):
         path = '/followers/ids.json',
         payload_type = 'ids',
         allowed_param = ['id', 'user_id', 'screen_name', 'cursor']
+    )
+
+    """ followers/list """
+    followers = bind_api(
+        path = '/followers/list.json',
+        payload_type = 'user', payload_list = True,
+        allowed_param = ['id', 'user_id', 'screen_name', 'page', 'cursor']
     )
 
     """ account/verify_credentials """
@@ -380,7 +410,7 @@ class API(object):
     favorites = bind_api(
         path = '/favorites/list.json',
         payload_type = 'status', payload_list = True,
-        allowed_param = ['screen_name', 'user_id', 'max_id', 'count', 'since_id', 'max_id']
+        allowed_param = ['screen_name', 'user_id', 'max_id', 'count', 'since_id']
     )
 
     """ favorites/create """
@@ -436,10 +466,10 @@ class API(object):
 
     """ report_spam """
     report_spam = bind_api(
-        path = '/report_spam.json',
+        path = '/users/report_spam.json',
         method = 'POST',
         payload_type = 'user',
-        allowed_param = ['id', 'user_id', 'screen_name'],
+        allowed_param = ['user_id', 'screen_name'],
         require_auth = True
     )
 
@@ -619,12 +649,11 @@ class API(object):
 
     """ search """
     search = bind_api(
+        search_api = True,
         path = '/search/tweets.json',
         payload_type = 'search_result', payload_list = True,
-        allowed_param = ['count', 'cursor', 'geocode', 'include_entities', 'lang', 'locale', 'max_id', 'q', 'result_type', 'show_user', 'since', 'since_id', 'until'],
-        require_auth = True
+        allowed_param = ['q', 'geocode', 'lang', 'locale', 'result_type', 'count', 'until', 'since_id', 'max_id', 'include_entities', 'rpp', 'page', 'show_user', 'since']
     )
-    search.pagination_mode = 'search'
 
     """ trends/daily """
     trends_daily = bind_api(

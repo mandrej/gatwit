@@ -2,9 +2,7 @@
 # Copyright 2009-2010 Joshua Roesslein
 # See LICENSE for details.
 
-from tweepy.error import TweepError
-from tweepy.utils import parse_datetime, parse_html_value, parse_a_href, \
-        unescape_html
+from tweepy.utils import parse_datetime, parse_html_value, parse_a_href
 
 
 class ResultSet(list):
@@ -210,25 +208,12 @@ class SavedSearch(Model):
 
 
 class SearchResult(Status):
-    """ Search results in V1.1 are now the same as any other status
-        data structure.  Therefore we'll just derive from Status class.
-
-        No need to define a special parse() method.
-    """
 
     @classmethod
-    def parse_list(cls, api, json_list, result_set=None):
-        results = ResultSet()
-        search_metadata = json_list.get('search_metadata')
-        if search_metadata:
-            # Convert smd dict to object with properties.  Use Model class
-            # for convenience but this could be any generic object.
-            t = Model()
-            t.__dict__.update(search_metadata)
-            results.search_metadata = t
-
-        for obj in json_list['statuses']:
-            results.append(cls.parse(api, obj))
+    def parse_list(cls, api, json_list, result_set=None):        
+        results = super(SearchResult, cls).parse_list(api, json_list['statuses'])
+        for k,v in json_list['search_metadata'].iteritems():
+            setattr(results, k, v)
         return results
 
 
