@@ -14,11 +14,14 @@
     <div id="main">
         {% for obj in collection %}
             <p id="{{ obj.id }}" class="tweet">
-                <img src="{{ obj.author.profile_image_url }}">
+                <img src="{{ obj.user.profile_image_url }}">
                 <span>
-                    <small>{{ obj.source }}, {{ obj.created_at|timesince }}</small><br>
-                    <a href="https://twitter.com/{{ obj.author.screen_name }}" class="from">@{{ obj.author.screen_name|default }} </a>
-                    {{ obj.author.followers_count }} followers<br>
+                    <small>{{ obj.source }}, {{ obj.created_at|timesince }},
+                        {% if obj.coordinates %}{{ obj.coordinates|geocode }}{% endif %}
+                    </small><br>
+                    <a href="https://twitter.com/{{ obj.user.screen_name }}" class="from">@{{ obj.user.screen_name|default }} </a>
+                    {{ obj.user.friends_count }} friends,
+                    {{ obj.user.followers_count }} followers<br>
                     {{ obj.text|twitterize|urlize }}
 {#                    <br>{{ obj.entities|pprint }}#}
 {#                    <br><small>{% for k,v in obj.__dict__.items() %}{{ k }}: {{ v|pprint }}, {% endfor %}</small>#}

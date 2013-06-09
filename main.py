@@ -16,8 +16,9 @@ import pygeoip
 import base64
 from tweepy.cache import MemoryCache
 from webapp2 import WSGIApplication
-from webapp2_extras import jinja2
+from webapp2_extras import sessions, jinja2
 from jinja2.utils import Markup
+from geopy import geocoders
 
 CONSUMER_KEY = 'uvkMU4MFVn2N3lgizdFRfQ'
 CONSUMER_SECRET = 'HGsVbzsYjCDhI0Y6u2vurlvEWrFqBxZkkQAu2ASnQ'
@@ -27,6 +28,7 @@ RADIUS = '10mi'
 GI = pygeoip.GeoIP('pygeoip/GeoLiteCity.dat')
 LOCAL_IP = '178.148.225.25'
 CACHE = MemoryCache(600)
+G = geocoders.GoogleV3()
 
 
 def twitterize(text):
@@ -58,6 +60,19 @@ def timesince_jinja(value, default="just now"):
     return default
 
 
+def geocode(arg):
+    # {u'coordinates': [20.3854038, 44.851479], u'type': u'Point'} <type 'dict'>
+    coordinates = arg['coordinates']
+    coordinates.reverse()
+    point_str = ','.join(map(str, coordinates))
+    try:
+        results = G.reverse(point_str, sensor=False)
+        location, point = results[0]
+        return location
+    except:
+        return ''
+
+
 class AppAuthHandler(tweepy.auth.AuthHandler):
     # http://shogo82148.github.io/blog/2013/05/09/application-only-authentication-with-tweepy/
     def __init__(self, consumer_key, consumer_secret):
@@ -72,16 +87,35 @@ class AppAuthHandler(tweepy.auth.AuthHandler):
 
         response = urllib2.urlopen(req, data)
         json_response = json.loads(response.read())
-        self.access_token = json_response['access_token']
+        self._access_token = json_response['access_token']
 
     def apply_auth(self, url, method, headers, parameters):
-        headers['Authorization'] = 'Bearer ' + self.access_token
+        headers['Authorization'] = 'Bearer ' + self._access_token
 
 
 class BaseHandler(webapp2.RequestHandler):
+    def dispatch(self):
+        # Get a session store for this request.
+        self.session_store = sessions.get_store(request=self.request)
+        try:
+            # Dispatch the request.
+            webapp2.RequestHandler.dispatch(self)
+        finally:
+            # Save all sessions.
+            self.session_store.save_sessions(self.response)
+
     @webapp2.cached_property
     def jinja2(self):
         return jinja2.get_jinja2(app=self.app)
+
+    @webapp2.cached_property
+    def session(self):
+        """Returns a session using the default cookie key"""
+        return self.session_store.get_session(backend='memcache')
+
+    @webapp2.cached_property
+    def session_store(self):
+        return sessions.get_store(request=self.request)
 
     def handle_exception(self, exception, debug):
         code = 500
@@ -129,13 +163,15 @@ class Index(BaseHandler):
             )
             CACHE.store('api', api)
 
-        collection = api.search(q=query,
-                                geocode=geocode,
-                                count=10,
-                                include_entities=True)  # <class 'tweepy.models.ResultSet'>
-        try:
+        collection = api.search(q=query, geocode=geocode, count=10)  # <class 'tweepy.models.ResultSet'>
+        prev_next = self.session.get('next')
+        if hasattr(collection, 'next_results'):
             next = collection.next_results
-        except AttributeError:
+            if next == prev_next:
+                next = None
+            else:
+                self.session['next'] = next
+        else:
             next = None
 
         self.render_template('index.html', {
@@ -149,12 +185,17 @@ CONFIG = {
     'webapp2_extras.jinja2': {
         'filters': {
             'twitterize': twitterize,
-            'timesince': timesince_jinja
+            'timesince': timesince_jinja,
+            'geocode': geocode
         },
         'environment_args': {
             'autoescape': True,
             'extensions': ['jinja2.ext.autoescape', 'jinja2.ext.with_']
         },
+    },
+    'webapp2_extras.sessions': {
+        'secret_key': 'XbOgZLNTzv5OoO2tBAM+Rw5ewX5d3TxVgvSfRJtc1W4=',
+        'backends': {'memcache': 'webapp2_extras.appengine.sessions_memcache.MemcacheSessionFactory'}
     }
 }
 app = WSGIApplication([
