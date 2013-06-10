@@ -1,9 +1,7 @@
 {% extends "base.html" %}
 
 {% block paginator %}
-    {% if next %}
-        <a href="{{ next }}" class="next icon-chevron-right icon-2x"></a>
-    {% endif %}
+    <a href="{{ collection.refresh_url }}" class="icon-rotate-right pull-right icon-2x"></a>
 {% endblock %}
 
 {% block content %}

@@ -1,5 +1,5 @@
 application: gatwitbot
-version: 'test1'
+version: '2006-06'
 runtime: python27
 api_version: 1
 threadsafe: yes

@@ -1,4 +1,4 @@
-@import "mixins.less";
+@import "misc";
 @import "font-awesome.less";
 
 @default_font: sans-serif;
@@ -36,7 +36,7 @@ header {
 	position: fixed;
 	width: 100%;
 	z-index: 1;
-	.gradient(@paper, fade(@paper, 50%), @paper);
+	background: fade(@paper, 80%);
 	h1 {
 		background: url(/static/img/tw.png) no-repeat 0.5em 0.5em;
 		padding: 0.5em 0.5em 0 3.2em;
@@ -45,10 +45,10 @@ header {
 		a {
 			color: @text;
 			&:hover { color: @google_orange; }
-			&.next { float: right; }
 		}
 	}
-	form { padding: 0 1em 1em 1em; color: @white;
+	form { padding: 0 1em 1em 1em;
+		small { float: right; text-align: center; }
 		input {
 			width: 65%;
 			font-size: 2em;

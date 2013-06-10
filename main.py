@@ -163,20 +163,9 @@ class Index(BaseHandler):
             )
             CACHE.store('api', api)
 
-        collection = api.search(q=query, geocode=geocode, count=10)  # <class 'tweepy.models.ResultSet'>
-        prev_next = self.session.get('next')
-        if hasattr(collection, 'next_results'):
-            next = collection.next_results
-            if next == prev_next:
-                next = None
-            else:
-                self.session['next'] = next
-        else:
-            next = None
-
+        collection = api.search(q=query, geocode=geocode, count=100)  # <class 'tweepy.models.ResultSet'>
         self.render_template('index.html', {
             'collection': collection,
-            'next': next,
             'query': query,
             'radius': RADIUS,
             'location': record['city']})
