@@ -12,7 +12,7 @@
 
 @paper: #222;
 @text: #999;
-@tweet: #fff;
+@white: #fff;
 
 .clearing { clear: both; display: block; content: "."; height: 0; visibility: hidden; }
 
@@ -30,20 +30,35 @@ body {
 	color: @text;
 	font-family: @default_font;
     font-size: 16px;
-	.page { padding: 1em; }
 }
 
-h1 {
-	background: url(/static/img/tw.png) no-repeat;
-	padding-left: 2.7em;
-	font-size: 2em;
-	line-height: 2.5em;
-	a {
-		color: @text;
-		&:hover { color: @google_orange; }
-		&.next { float: right; }
+header {
+	position: fixed;
+	width: 100%;
+	z-index: 1;
+	.gradient(@paper, fade(@paper, 50%), @paper);
+	h1 {
+		background: url(/static/img/tw.png) no-repeat 0.5em 0.5em;
+		padding: 0.5em 0.5em 0 3.2em;
+		font-size: 2em;
+		line-height: 2.5em;
+		a {
+			color: @text;
+			&:hover { color: @google_orange; }
+			&.next { float: right; }
+		}
+	}
+	form { padding: 0 1em 1em 1em; color: @white;
+		input {
+			width: 65%;
+			font-size: 2em;
+			color: @google_green;
+			background: transparent;
+			border: none;
+		}
 	}
 }
+article { position: relative; padding: 9.5em 1em 1em 1em; }
 
 p {
 	margin: 1em 0;
@@ -55,24 +70,9 @@ p {
 		span {
 			display: block;
 			padding-left: 3.8em;
-			color: @tweet;
-			> span { display: inline; padding: 0; color: @text; }
+			color: @white;
+			small { color: @text; }
 		}
 		a.hash { color: @google_green; }
-		a.reply, a.retweet, a.post, a.cancel { color: @twitter_blue; }
-		a.post, a.cancel { display: none; }
 	}
 }
-
-input {
-	width: 65%;
-	font-size: 2em;
-	color: @google_green;
-    background: transparent;
-	border: none;
-}
-textarea {
-	display: block;
-	&.text { display: none; width: 100%; }
-}
-
