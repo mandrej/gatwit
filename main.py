@@ -147,6 +147,7 @@ class Index(BaseHandler):
             CACHE.store('api', api)
 
         collection = api.search(q=query, geocode=geocode, count=20)  # <class 'tweepy.models.ResultSet'>
+        # logging.error(vars(collection[0].user))
         self.render_template('index.html', {
             'collection': collection,
             'query': query,
@@ -165,7 +166,7 @@ CONFIG = {
         'environment_args': {
             'autoescape': True,
             'extensions': ['jinja2.ext.autoescape', 'jinja2.ext.with_']
-        },
+        }
     }
 }
 app = WSGIApplication([
