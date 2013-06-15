@@ -16,7 +16,7 @@ import pygeoip
 import base64
 from tweepy.cache import MemoryCache
 from webapp2 import WSGIApplication
-from webapp2_extras import sessions, jinja2
+from webapp2_extras import jinja2
 from jinja2.utils import Markup
 from geopy import geocoders
 
@@ -29,6 +29,8 @@ GI = pygeoip.GeoIP('pygeoip/GeoLiteCity.dat')
 LOCAL_IP = '178.148.225.25'
 CACHE = MemoryCache(600)
 G = geocoders.GoogleV3()
+# convert -size 48x48 xc:transparent gif:- | base64
+BLANK = 'R0lGODlhMAAwAPAAAAAAAAAAACH5BAEAAAAALAAAAAAwADAAAAIxhI+py+0Po5y02ouz3rz7D4biSJbmiabqyrbuC8fyTNf2jef6zvf+DwwKh8Si8egpAAA7'
 
 
 def twitterize(text):
@@ -94,28 +96,9 @@ class AppAuthHandler(tweepy.auth.AuthHandler):
 
 
 class BaseHandler(webapp2.RequestHandler):
-    def dispatch(self):
-        # Get a session store for this request.
-        self.session_store = sessions.get_store(request=self.request)
-        try:
-            # Dispatch the request.
-            webapp2.RequestHandler.dispatch(self)
-        finally:
-            # Save all sessions.
-            self.session_store.save_sessions(self.response)
-
     @webapp2.cached_property
     def jinja2(self):
         return jinja2.get_jinja2(app=self.app)
-
-    @webapp2.cached_property
-    def session(self):
-        """Returns a session using the default cookie key"""
-        return self.session_store.get_session(backend='memcache')
-
-    @webapp2.cached_property
-    def session_store(self):
-        return sessions.get_store(request=self.request)
 
     def handle_exception(self, exception, debug):
         code = 500
@@ -163,12 +146,14 @@ class Index(BaseHandler):
             )
             CACHE.store('api', api)
 
-        collection = api.search(q=query, geocode=geocode, count=100)  # <class 'tweepy.models.ResultSet'>
+        collection = api.search(q=query, geocode=geocode, count=20)  # <class 'tweepy.models.ResultSet'>
         self.render_template('index.html', {
             'collection': collection,
             'query': query,
             'radius': RADIUS,
-            'location': record['city']})
+            'location': record['city'],
+            'blank': 'data:image/gif;base64,%s' % BLANK
+        })
 
 CONFIG = {
     'webapp2_extras.jinja2': {
@@ -181,10 +166,6 @@ CONFIG = {
             'autoescape': True,
             'extensions': ['jinja2.ext.autoescape', 'jinja2.ext.with_']
         },
-    },
-    'webapp2_extras.sessions': {
-        'secret_key': 'XbOgZLNTzv5OoO2tBAM+Rw5ewX5d3TxVgvSfRJtc1W4=',
-        'backends': {'memcache': 'webapp2_extras.appengine.sessions_memcache.MemcacheSessionFactory'}
     }
 }
 app = WSGIApplication([
