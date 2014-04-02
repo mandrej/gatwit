@@ -131,6 +131,7 @@ class Index(BaseHandler):
         if 'latitude' not in record:
             record = GI.record_by_addr(LOCAL_IP)
         geocode = '{0},{1}'.format('{latitude:.4f},{longitude:.4f}'.format(**record), RADIUS)
+        # logging.error(geocode)
 
         api = CACHE.get('api')
         if api is None:
