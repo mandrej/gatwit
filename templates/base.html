@@ -11,8 +11,7 @@
 </head>
 <body>
     <header>
-{#        {{ collection.completed_in }}#}
-        <p><small>Results within {{ radius }} around {{ location }}</small></p>
+        <p><small>{% block info %}{% endblock %}</small></p>
         <h1>
             <a href="/">LAJNA</a>
             {% block paginator %}{% endblock %}

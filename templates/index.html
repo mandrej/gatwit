@@ -4,6 +4,11 @@
     <a href="{{ collection.refresh_url }}" class="fa fa-repeat fa-2x pull-right"></a>
 {% endblock %}
 
+{% block info %}
+{#    {{ collection.completed_in }}#}
+    Results within {{ radius }} around {{ location }}
+{% endblock %}
+
 {% block content %}
     <div id="main">
         {% for obj in collection %}
