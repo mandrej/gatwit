@@ -26,7 +26,7 @@ TOKEN_URL = 'https://api.twitter.com/oauth2/token'
 DEVEL = os.environ.get('SERVER_SOFTWARE', '').startswith('Dev')
 RADIUS = '10mi'
 GI = pygeoip.GeoIP('pygeoip/GeoLiteCity.dat')
-LOCAL_IP = '178.148.225.25'
+EXTERNAL_IP = '178.148.225.25'
 CACHE = MemoryCache(600)
 G = geocoders.GoogleV3()
 # convert -size 48x48 xc:transparent gif:- | base64
@@ -62,17 +62,14 @@ def timesince_jinja(value, default="just now"):
     return default
 
 
-def geocode(arg):
+def geo_address(arg):
     # {u'coordinates': [20.3854038, 44.851479], u'type': u'Point'} <type 'dict'>
     coordinates = arg['coordinates']
     coordinates.reverse()
     point_str = ','.join(map(str, coordinates))
-    try:
-        results = G.reverse(point_str, sensor=False)
-        location, point = results[0]
-        return location
-    except:
-        return ''
+    results = G.reverse(point_str, sensor=False)
+    location, point = results[0]
+    return location
 
 
 class AppAuthHandler(tweepy.auth.AuthHandler):
@@ -128,10 +125,10 @@ class Index(BaseHandler):
         query = self.request.get('q', '')
 
         record = GI.record_by_addr(self.request.remote_addr)
-        if 'latitude' not in record:
-            record = GI.record_by_addr(LOCAL_IP)
+        if not any(record):  # empty dictionary for 127.0.0.1
+            record = GI.record_by_addr(EXTERNAL_IP)
         geocode = '{0},{1}'.format('{latitude:.4f},{longitude:.4f}'.format(**record), RADIUS)
-        # logging.error(geocode)
+        logging.error(record)
 
         api = CACHE.get('api')
         if api is None:
@@ -162,7 +159,7 @@ CONFIG = {
         'filters': {
             'twitterize': twitterize,
             'timesince': timesince_jinja,
-            'geocode': geocode
+            'geo_address': geo_address
         },
         'environment_args': {
             'autoescape': True,
