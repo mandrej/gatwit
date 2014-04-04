@@ -90,11 +90,12 @@ article { position: relative; padding: 9.5em 1em 1em 1em; }
 
 p {
 	margin: 1em 0;
+	line-height: 1.5;
 	&.error { color: @google_red; }
 	&.success { color: @twitter_blue; }
 	&.tweet {
 		min-height: 3em;
-		img { float: left; }
+		img { float: left; margin-top: 0.5em; }
 		span {
 			display: block;
 			padding-left: 3.8em;
@@ -103,4 +104,7 @@ p {
 		}
 		a.hash { color: @google_green; }
 	}
+}
+.fa-map-marker {
+	color: @google_red;
 }

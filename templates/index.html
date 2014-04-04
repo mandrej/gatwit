@@ -22,28 +22,29 @@
 {% endblock %}
 
 {% block content %}
-    <div id="main">
-        {% for obj in collection %}
-            <p id="{{ obj.id }}" class="tweet">
+    {% for obj in collection %}
+        <p id="{{ obj.id }}" class="tweet">
+            <a href="https://twitter.com/{{ obj.user.screen_name }}">
                 <img src="{{ obj.user.profile_image_url }}">
-                <span>
-                    <small>{{ obj.source }}, {{ obj.created_at|timesince }},
-                        {% if obj.coordinates %}
-                            {{ obj.coordinates|geo_address }}
-                        {% else %}
-                            {{ obj.user.location }}
-                        {% endif %}
-                    </small><br>
-                    <a href="https://twitter.com/{{ obj.user.screen_name }}" class="from">@{{ obj.user.screen_name|default }} </a>
-                    {{ obj.user.friends_count }} friends,
-                    {{ obj.user.followers_count }} followers<br>
-                    {{ obj.text|twitterize|urlize }}
-{#                    <br>{{ obj.entities|pprint }}#}
-{#                    <br><small>{% for k,v in obj.__dict__.items() %}{{ k }}: {{ v|pprint }}, {% endfor %}</small>#}
-                </span>
-            </p>
-        {% else %}
-            <p>No search results</p>
-        {% endfor %}
-    </div>
+            </a>
+            <span>
+                <small>{{ obj.source }}, {{ obj.created_at|timesince }},
+                    {% if obj.coordinates %}
+                        <i class="fa fa-map-marker"></i>
+                        {{ obj.coordinates|geo_address }}
+                    {% else %}
+                        {{ obj.user.location }}
+                    {% endif %}
+                </small><br>
+                <a href="https://twitter.com/{{ obj.user.screen_name }}" class="from">@{{ obj.user.screen_name|default }}</a>
+                {{ obj.user.friends_count }} friends,
+                {{ obj.user.followers_count }} followers<br>
+                {{ obj.text|twitterize|urlize }}
+{#                <br>{{ obj.entities|pprint }}#}
+{#                <br><small>{% for k,v in obj.__dict__.items() %}{{ k }}: {{ v|pprint }}, {% endfor %}</small>#}
+            </span>
+        </p>
+    {% else %}
+        <p>No search results</p>
+    {% endfor %}
 {% endblock %}
