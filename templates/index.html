@@ -1,19 +1,31 @@
 {% extends "base.html" %}
 
 {% block paginator %}
-    <a href="{{ collection.refresh_url }}" class="fa fa-repeat fa-2x pull-right"></a>
+    <a href="{{ collection.refresh_url }}" class="fa fa-refresh fa-2x pull-right"></a>
 {% endblock %}
 
-{% block info %}
-{#    {{ collection.completed_in }}#}
-    Results within {{ radius }} around {{ location }}
+{% block city %}
+    <select name="city">
+        {% for place, loc in cities.items() %}
+            <option {% if place == city %}selected{% endif %} value="{{ place }}">{{ place }}</option>
+        {% endfor %}
+    </select>
+    <script>
+        $(function() {
+            $('select[name=city]').change(function() {
+                $.post('/', {city: $(this).val()}, function(response) {
+                    if (response) location.href = '/';
+                });
+            })
+        })
+    </script>
 {% endblock %}
 
 {% block content %}
     <div id="main">
         {% for obj in collection %}
             <p id="{{ obj.id }}" class="tweet">
-                <img src="{{ blank }}" style="background: url({{ obj.user.profile_image_url }})">
+                <img src="{{ obj.user.profile_image_url }}">
                 <span>
                     <small>{{ obj.source }}, {{ obj.created_at|timesince }},
                         {% if obj.coordinates %}

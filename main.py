@@ -12,11 +12,11 @@ import urllib
 import urllib2
 import logging
 import datetime
-import pygeoip
+import collections
 import base64
 from tweepy.cache import MemoryCache
 from webapp2 import WSGIApplication
-from webapp2_extras import jinja2
+from webapp2_extras import jinja2, sessions
 from jinja2.utils import Markup
 from geopy import geocoders
 
@@ -24,13 +24,30 @@ CONSUMER_KEY = 'uvkMU4MFVn2N3lgizdFRfQ'
 CONSUMER_SECRET = 'HGsVbzsYjCDhI0Y6u2vurlvEWrFqBxZkkQAu2ASnQ'
 TOKEN_URL = 'https://api.twitter.com/oauth2/token'
 DEVEL = os.environ.get('SERVER_SOFTWARE', '').startswith('Dev')
-RADIUS = '10mi'
-GI = pygeoip.GeoIP('pygeoip/GeoLiteCity.dat')
-EXTERNAL_IP = '178.148.225.25'
+RADIUS = '20mi'
 CACHE = MemoryCache(600)
 G = geocoders.GoogleV3()
 # convert -size 48x48 xc:transparent gif:- | base64
 BLANK = 'R0lGODlhMAAwAPAAAAAAAAAAACH5BAEAAAAALAAAAAAwADAAAAIxhI+py+0Po5y02ouz3rz7D4biSJbmiabqyrbuC8fyTNf2jef6zvf+DwwKh8Si8egpAAA7'
+CITY = collections.OrderedDict([
+    (u'NS', '45.26353,19.84388'),
+    (u'BG', '44.82056,20.46222'),
+    (u'SD', '44.66667,20.93333'),
+    (u'PO', '44.61667,21.18333'),
+    (u'ŠA', '44.75423,19.69975'),
+    (u'VA', '44.27437,19.89110'),
+    (u'KG', '44.01271,20.92674'),
+    (u'JA', '43.98139,21.24556'),
+    (u'ZA', '43.92048,22.27742'),
+    (u'ČA', '43.88891,20.35038'),
+    (u'KV', '43.72342,20.68697'),
+    (u'NI', '43.31938,21.89633'),
+    (u'LE', '43.00000,21.95000'),
+    # (u'CT', '42.39089,18.91398'),
+    # (u'PG', '42.44257,19.26865'),
+    # (u'BD', '42.28806,18.84250'),
+    # (u'BR', '42.09383,19.10027'),
+])
 
 
 def twitterize(text):
@@ -93,9 +110,24 @@ class AppAuthHandler(tweepy.auth.AuthHandler):
 
 
 class BaseHandler(webapp2.RequestHandler):
+    def dispatch(self):
+        self.session_store = sessions.get_store(request=self.request)
+        try:
+            webapp2.RequestHandler.dispatch(self)
+        finally:
+            self.session_store.save_sessions(self.response)
+
     @webapp2.cached_property
     def jinja2(self):
         return jinja2.get_jinja2(app=self.app)
+
+    @webapp2.cached_property
+    def session(self):
+        return self.session_store.get_session()
+
+    @webapp2.cached_property
+    def session_store(self):
+        return sessions.get_store(request=self.request)
 
     def handle_exception(self, exception, debug):
         code = 500
@@ -117,20 +149,20 @@ class BaseHandler(webapp2.RequestHandler):
         self.response.set_status(code)
 
     def render_template(self, filename, kwargs):
+        kwargs['city'] = self.session.get('city', 'BG')
         self.response.write(self.jinja2.render_template(filename, **kwargs))
+
+    def render_json(self, data):
+        self.response.content_type = 'application/json; charset=utf-8'
+        self.response.write(json.dumps(data))
 
 
 class Index(BaseHandler):
     def get(self):
         query = self.request.get('q', '')
-
-        record = GI.record_by_addr(self.request.remote_addr)
-        if not any(record):  # empty dictionary for 127.0.0.1
-            record = GI.record_by_addr(EXTERNAL_IP)
-        geocode = '{0},{1}'.format('{latitude:.4f},{longitude:.4f}'.format(**record), RADIUS)
-        logging.error(record)
-
+        geocode = '{0},{1}'.format(CITY[self.session.get('city', 'BG')], RADIUS)
         api = CACHE.get('api')
+
         if api is None:
             auth = AppAuthHandler(CONSUMER_KEY, CONSUMER_SECRET)
             # http://www.nirg.net/blog/2013/04/using-tweepy/
@@ -149,10 +181,14 @@ class Index(BaseHandler):
         self.render_template('index.html', {
             'collection': collection,
             'query': query,
-            'radius': RADIUS,
-            'location': record['city'],
-            'blank': 'data:image/gif;base64,%s' % BLANK
+            'cities': CITY,
+            # 'blank': 'data:image/gif;base64,%s' % BLANK
         })
+
+    def post(self):
+        self.session['city'] = self.request.get('city')
+        self.render_json(True)
+
 
 CONFIG = {
     'webapp2_extras.jinja2': {
@@ -165,8 +201,10 @@ CONFIG = {
             'autoescape': True,
             'extensions': ['jinja2.ext.autoescape', 'jinja2.ext.with_']
         }
-    }
+    },
+    'webapp2_extras.sessions': {'secret_key': 'bjKqvIazjfbbVOqxSvjkMbBjpu9UA2jl'}
 }
+# < /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c${1:-32};echo;
 app = WSGIApplication([
     (r'/', Index),
 ], config=CONFIG, debug=DEVEL)

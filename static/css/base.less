@@ -38,6 +38,7 @@ a {
 
 body {
 	background: @paper;
+	width: 100%;
     height: 100%;
 	color: @text;
 	font-family: @default_font;
@@ -49,6 +50,7 @@ header {
 	width: 100%;
 	z-index: 1;
 	background: lighten(@paper, 5%);
+	color: @twitter_blue;
 	p {
 		position: absolute;
 		margin: 0;
@@ -59,17 +61,25 @@ header {
 		background: url(/static/img/tw.png) no-repeat 0.5em 0.5em;
 		padding: 0.5em 0.5em 0 3.2em;
 		font-size: 2em;
+		font-weight: normal;
 		line-height: 2.5em;
+		select {
+			font-size: inherit;
+			background: transparent;
+			color: @twitter_blue;
+			border: none;
+			option { background: @paper; }
+		}
 		a {
-			color: @text;
-			&:hover { color: @google_orange; }
+			color: @twitter_blue;
+			&:hover { color: darken(@twitter_blue, 20); }
 		}
 	}
 	form { padding: 0 1em 1em 1em; white-space: nowrap;
 		input {
 			width: 50%;
 			font-size: 2em;
-			color: @google_green;
+			color: @twitter_blue;
 			background: @paper;
 			border: none;
 		}
