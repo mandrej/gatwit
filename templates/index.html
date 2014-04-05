@@ -4,30 +4,13 @@
     <a href="{{ collection.refresh_url }}" class="fa fa-refresh pull-right"></a>
 {% endblock %}
 
-{% block place %}
-    <select name="place">
-        {% for place, loc in cities.items() %}
-            <option {% if place == city %}selected{% endif %} value="{{ place }}">{{ place }}</option>
-        {% endfor %}
-    </select>
-    <script>
-        $(function() {
-            $('select[name=place]').change(function() {
-                $.post('/', {place: $(this).val()}, function(response) {
-                    if (response) location.href = '/';
-                });
-            })
-        })
-    </script>
-{% endblock %}
-
 {% block content %}
     {% for obj in collection %}
-        <p id="{{ obj.id }}" class="tweet">
+        <div id="{{ obj.id }}" class="tweet">
             <a href="https://twitter.com/{{ obj.user.screen_name }}">
                 <img src="{{ blank }}" style="background: url({{ obj.user.profile_image_url }})">
             </a>
-            <span>
+            <p>
                 <small>{{ obj.source }}, {{ obj.created_at|timesince }},
                     {% if obj.coordinates %}
                         <i class="fa fa-map-marker"></i>
@@ -35,15 +18,17 @@
                     {% else %}
                         {{ obj.user.location }}
                     {% endif %}
-                </small><br>
+                </small>
+            </p>
+            <p>
                 <a href="https://twitter.com/{{ obj.user.screen_name }}" class="from">@{{ obj.user.screen_name|default }}</a>
                 {{ obj.user.friends_count }} friends,
                 {{ obj.user.followers_count }} followers<br>
                 {{ obj.text|twitterize|urlize }}
 {#                <br>{{ obj.entities|pprint }}#}
 {#                <br><small>{% for k,v in obj.__dict__.items() %}{{ k }}: {{ v|pprint }}, {% endfor %}</small>#}
-            </span>
-        </p>
+            </p>
+        </div>
     {% else %}
         <p>No search results</p>
     {% endfor %}

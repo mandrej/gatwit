@@ -12,18 +12,37 @@
 </head>
 <body>
     <header>
-        <i class="fa fa-twitter-square pull-left"></i>
+        <label for="swipe" data-function='swipe' class="fa fa-bars pull-left"></label>
         {% block paginator %}{% endblock %}
-        <h1>
-            <a href="/">LAJNA</a>
-            {% block place %}{% endblock %}
-        </h1>
-        <form action="/" method="get">
-            <i class="fa fa-search"></i>
-            <input type="text" name="q" value="{{ query }}">
-        </form>
+        <h1><a href="/">LAJNA</a></h1>
     </header>
-    <article>{% block content %}{% endblock %}</article>
+    <div id="wrapper">
+        <input type="checkbox" id="swipe" data-function="swipe"/>
+        <nav class="menu">
+            <form action="/" method="get">
+                <i class="fa fa-search"></i>
+                <input type="text" name="q" value="{{ query }}">
+            </form>
+            <ul id="places">
+                {% for place, loc in cities.items() %}
+                    <li class="{% if place == city %}selected{% endif %}">
+                        <a href="#" data-place="{{ place }}">{{ place }}</a>
+                    </li>
+                {% endfor %}
+            </ul>
+            <script>
+                $(function() {
+                    $('#places a').click(function(ev) {
+                        ev.preventDefault();
+                        $.post('/', {place: $(this).data('place')}, function(response) {
+                            if (response) location.href = '/';
+                        });
+                    })
+                })
+            </script>
+        </nav>
+        <article id="main">{% block content %}{% endblock %}</article>
+    </div>
     <footer><a href="https://twitter.com/@mandrej">@mandrej</a> 2013-{{ year() }}</footer>
     <script>
         (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){

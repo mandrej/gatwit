@@ -1,0 +1,160 @@
+@highdensity: ~"only screen and (-webkit-min-device-pixel-ratio: 1.5)",
+              ~"only screen and (min--moz-device-pixel-ratio: 1.5)",
+              ~"only screen and (-o-min-device-pixel-ratio: 3/2)",
+              ~"only screen and (min-device-pixel-ratio: 1.5)";
+@mobile:      ~"only screen and (max-width: 529px)";
+@tablet:      ~"only screen and (min-width: 530px) and (max-width: 949px)";
+@desktop:     ~"only screen and (min-width: 950px) and (max-width: 1128px)";
+@desktop-xl:  ~"only screen and (min-width: 1129px)";
+
+.debug(@var) {
+	&:after {
+		content: "@{var}";
+		font-size: 1em;
+		background-color: white;
+		padding: 0.5em;
+		color: red;
+		position: absolute;
+		top: 0;
+		left: 30%;
+		z-index: 10000;
+	}
+}
+.drop-shadow(@x-axis: 0, @y-axis: 1px, @blur: 2px, @alpha: 0.1) {
+	-webkit-box-shadow: @x-axis @y-axis @blur rgba(0, 0, 0, @alpha);
+	-moz-box-shadow: @x-axis @y-axis @blur rgba(0, 0, 0, @alpha);
+	box-shadow: @x-axis @y-axis @blur rgba(0, 0, 0, @alpha);
+}
+.box-sizing(@args){
+	-webkit-box-sizing: @args;
+	-moz-box-sizing: @args;
+	box-sizing: @args;
+}
+.border-radius(@args) {
+	-webkit-border-radius: @args;
+	-moz-border-radius: @args;
+	border-radius: @args;
+	-webkit-background-clip: padding-box;
+	-moz-background-clip: padding;
+	background-clip: padding-box;
+}
+.rounded_left_reset {
+	border-top-left-radius: 0;
+	-moz-border-radius-topleft: 0;
+	-webkit-border-top-left-radius: 0;
+	border-bottom-left-radius: 0;
+	-moz-border-radius-bottomleft: 0;
+	-webkit-border-bottom-left-radius: 0;
+}
+.transition(@transition, @duration, @timingFunction: ease-in-out) when (@transition = transform) {
+	-webkit-transition: -webkit-transform @duration @timingFunction;
+    -moz-transition: -moz-transform @duration @timingFunction;
+    -ms-transition: -ms-transform @duration @timingFunction;
+    -o-transition: -o-transform @duration @timingFunction;
+    transition: transform @duration @timingFunction;
+}
+.transition(...) {
+	-webkit-transition: @arguments;
+    -moz-transition: @arguments;
+    -ms-transition: @arguments;
+    -o-transition: @arguments;
+    transition: @arguments;
+}
+.animation(...) {
+	-webkit-animation: @arguments;
+	-moz-animation: @arguments;
+	-ms-animation: @arguments;
+	-o-animation: @arguments;
+}
+.animation-delay(@delay) {
+	-webkit-animation-delay: @delay;
+	-moz-animation-delay: @delay;
+	-ms-animation-delay: @delay;
+	-o-animation-delay: @delay;
+}
+.transform(...) {
+	-webkit-transform: @arguments;
+	-moz-transform: @arguments;
+	-ms-transform: @arguments;
+	-o-transform: @arguments;
+	transform: @arguments;
+}
+.transform-style(...) {
+	-webkit-transform-style: @arguments;
+	-moz-transform-style: @arguments;
+	-ms-transform-style: @arguments;
+	-o-transform-style: @arguments;
+	transform-style: @arguments;
+}
+.perspective(...) {
+	-webkit-perspective: @arguments;
+	-moz-perspective: @arguments;
+	-ms-perspective: @arguments;
+	perspective: @arguments;
+}
+.backface(...) {
+	-webkit-backface-visibility: @arguments;
+	-moz-backface-visibility: @arguments;
+	-ms-backface-visibility: @arguments;
+	-o-backface-visibility: @arguments;
+	backface-visibility: @arguments;
+}
+.columns(@colwidth: 250px, @colcount: 0, @colgap: 50px) {
+	-moz-column-width: @colwidth;
+	-moz-column-count: @colcount;
+	-moz-column-gap: @colgap;
+	-webkit-column-width: @colwidth;
+	-webkit-column-count: @colcount;
+	-webkit-column-gap: @colgap;
+	column-width: @colwidth;
+	column-count: @colcount;
+	column-gap: @colgap;
+}
+.column-break-inside(@args) {
+	-webkit-column-break-inside: @args;
+	-moz-column-break-inside: @args;
+	column-break-inside: @args;
+}
+.flex-display(@display: flex) {
+	display: ~"-webkit-@{display}";
+	display: ~"-moz-@{display}";
+	display: ~"-ms-@{display}box"; // IE10 uses -ms-flexbox
+	display: ~"-ms-@{display}"; // IE11
+	display: @display;
+}
+.flex(@columns: initial) {
+	-webkit-flex: @columns;
+    -moz-flex: @columns;
+    -ms-flex: @columns;
+    flex: @columns;
+}
+.flex-flow(@flow) {
+	-webkit-flex-flow: @flow;
+    -moz-flex-flow: @flow;
+    -ms-flex-flow: @flow;
+    flex-flow: @flow;
+}
+.align-content(@align: stretch) {
+	-webkit-align-content: @align;
+    -moz-align-content: @align;
+    -ms-align-content: @align;
+    align-content: @align;
+}
+.justify-content(@justify: flex-start) {
+	-webkit-justify-content: @justify;
+	-moz-justify-content: @justify;
+	-ms-justify-content: @justify;
+	justify-content: @justify;
+}
+.align-items(@align: stretch) {
+	-webkit-align-items: @align;
+	-moz-align-items: @align;
+	-ms-align-items: @align;
+	align-items: @align;
+}
+.align-self(@align: auto) {
+	-webkit-align-self: @align;
+    -moz-align-self: @align;
+    -ms-align-self: @align;
+    align-self: @align;
+}

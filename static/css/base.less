@@ -1,3 +1,5 @@
+@import "mixins";
+
 @default_font: sans-serif;
 @monospaced: "Courier New", Courier, Freemono, "Nimbus Mono L", monospace;
 
@@ -11,20 +13,8 @@
 @text: #999;
 @white: #fff;
 @gap: 80px;
+@menuOffset: 384px;
 
-.debug(@var) {
-	&:after {
-		content: "@{var}";
-		font-size: 1em;
-		background-color: white;
-		padding: 0.5em;
-		color: red;
-		position: absolute;
-		top: 0;
-		left: 30%;
-		z-index: 10000;
-	}
-}
 .clearing {
 	&:after { clear: both; display: block; content: "."; height: 0; visibility: hidden; }
 }
@@ -46,6 +36,58 @@ body {
     font-size: 16px;
 }
 
+#wrapper {
+	min-height: 100%;
+	overflow: hidden;
+}
+label[data-function*='swipe'] {
+    color: @twitter_blue;
+	.transition(0.3s);
+	&:hover { color: @white; }
+}
+input[data-function*='swipe'] {
+	position: absolute;
+	opacity: 0;
+	&:checked ~ .menu, &:checked ~ #main {
+		.transform(translate3d(@menuOffset,0,0));
+	}
+}
+.menu {
+	position: fixed;
+	margin-top: @gap;
+	top: 0;
+	left: -@menuOffset;
+	bottom: 0;
+	.box-sizing(border-box);
+	width: @menuOffset;
+	background: darken(@paper, 10%);
+	padding: 1em;
+	z-index: 1;
+	text-shadow: none;
+	.transform(translate3d(0,0,0));
+	.transition(transform, .5s);
+	form {
+		input {
+			font-size: 1.5em;
+			color: @twitter_blue;
+			background: @paper;
+			border: none;
+		}
+	}
+	#places {
+		margin: 0.7em 0;
+		li {
+			list-style: none;
+			font-size: 1.4em;
+			a {
+				color: @twitter_blue;
+				display: block;
+			}
+			&.selected a { color: @white; }
+		}
+	}
+}
+
 header {
 	position: fixed;
 	width: 100%;
@@ -58,46 +100,25 @@ header {
 		&:hover { color: @white; }
 	}
 	h1 {
-		padding: 1em 1em 0 0;
-		font-size: 1em;
-		select {
-			font-size: inherit;
-			background: transparent;
-			color: @twitter_blue;
-			border: none;
-			option { background: @paper; }
-		}
-	}
-	form {
-		margin: 0 @gap;
-		padding-top: 0.5em;
-		white-space: nowrap;
-		input {
-			font-size: 1em;
-			color: @twitter_blue;
-			background: transparent;
-			border: none;
-		}
+		padding: 20px 16px;
+		font-size: 48px;
+		line-height: 1;
 	}
 }
-article {
+article#main {
 	position: relative; padding: @gap 1em 1em 1em;
-	p {
+	.transform(translate3d(0,0,0));
+	.transition(transform, .5s);
+	.tweet {
 		margin: 1em 0;
-		line-height: 1.4;
-		&.error { color: @google_red; }
-		&.success { color: @twitter_blue; }
-		&.tweet {
-			min-height: 56px;
-			img { float: left; margin-top: 0.5em; }
-			span {
-				display: block;
-				padding-left: 64px;
-				color: @white;
-				small { color: @text; }
-			}
-			a.hash { color: @google_green; }
+		min-height: 56px;
+		img { float: left; margin-top: 0.5em; }
+		p {
+	//		line-height: 1.4;
+			padding-left: 64px;
+			small { color: @text; }
 		}
+		a.hash { color: @google_green; }
 	}
 }
 footer {
@@ -105,7 +126,7 @@ footer {
 	text-align: center;
 }
 
-.fa-twitter-square, .fa-refresh {
+.fa-bars, .fa-twitter-square, .fa-refresh {
 	margin: 0 !important;
 	padding: 16px;
 	font-size: 56px;
@@ -114,5 +135,6 @@ footer {
 	color: @google_red;
 }
 .fa-search {
+	font-size: 1.5em;
 	display: inline-block; margin-right: 0.35em;
 }

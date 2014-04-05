@@ -25,10 +25,12 @@ CONSUMER_KEY = 'uvkMU4MFVn2N3lgizdFRfQ'
 CONSUMER_SECRET = 'HGsVbzsYjCDhI0Y6u2vurlvEWrFqBxZkkQAu2ASnQ'
 TOKEN_URL = 'https://api.twitter.com/oauth2/token'
 DEVEL = os.environ.get('SERVER_SOFTWARE', '').startswith('Dev')
-GI = pygeoip.GeoIP('pygeoip/GeoLiteCity.dat')
 RADIUS = '20mi'
+
+GV3 = geocoders.GoogleV3()
+GIP = pygeoip.GeoIP('pygeoip/GeoLiteCity.dat')
 CACHE = MemoryCache(600)
-G = geocoders.GoogleV3()
+
 # convert -size 48x48 xc:transparent gif:- | base64
 BLANK = 'R0lGODlhMAAwAPAAAAAAAAAAACH5BAEAAAAALAAAAAAwADAAAAIxhI+py+0Po5y02ouz3rz7D4biSJbmiabqyrbuC8fyTNf2jef6zvf+DwwKh8Si8egpAAA7'
 CITY = collections.OrderedDict([
@@ -92,7 +94,7 @@ def geo_address(arg):
     coordinates = arg['coordinates']
     coordinates.reverse()
     point_str = ','.join(map(str, coordinates))
-    results = G.reverse(point_str, sensor=False)
+    results = GV3.reverse(point_str, sensor=False)
     location, point = results[0]
     return location
 
@@ -171,7 +173,7 @@ class Index(BaseHandler):
         city = self.session.get('city', 'Beograd')
 
         if city == '---':
-            record = GI.record_by_addr(self.request.remote_addr)
+            record = GIP.record_by_addr(self.request.remote_addr)
             if all(['latitude', 'longitude', 'city']) in record:
                 geocode = '{0},{1}'.format('{latitude:.4f},{longitude:.4f}'.format(**record), RADIUS)
             else:
