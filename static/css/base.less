@@ -10,6 +10,7 @@
 @paper: #222;
 @text: #999;
 @white: #fff;
+@gap: 80px;
 
 .debug(@var) {
 	&:after {
@@ -48,21 +49,17 @@ body {
 header {
 	position: fixed;
 	width: 100%;
+	height: @gap;
 	z-index: 1;
 	background: lighten(@paper, 5%);
 	color: @twitter_blue;
-	p {
-		position: absolute;
-		margin: 0;
-		top: 4.5em;
-		left: 6.5em;
+	a {
+		color: @twitter_blue;
+		&:hover { color: @white; }
 	}
 	h1 {
-		background: url(/static/img/tw.png) no-repeat 0.5em 0.5em;
-		padding: 0.5em 0.5em 0 3.2em;
-		font-size: 2em;
-		font-weight: normal;
-		line-height: 2.5em;
+		padding: 1em 1em 0 0;
+		font-size: 1em;
 		select {
 			font-size: inherit;
 			background: transparent;
@@ -70,41 +67,48 @@ header {
 			border: none;
 			option { background: @paper; }
 		}
-		a {
-			color: @twitter_blue;
-			&:hover { color: darken(@twitter_blue, 20); }
-		}
 	}
-	form { padding: 0 1em 1em 1em; white-space: nowrap;
+	form {
+		margin: 0 @gap;
+		padding-top: 0.5em;
+		white-space: nowrap;
 		input {
-			width: 50%;
-			font-size: 2em;
+			font-size: 1em;
 			color: @twitter_blue;
-			background: @paper;
+			background: transparent;
 			border: none;
 		}
-		small { float: right; text-align: center; }
 	}
 }
-article { position: relative; padding: 9.5em 1em 1em 1em; }
-
-p {
-	margin: 1em 0;
-	line-height: 1.5;
-	&.error { color: @google_red; }
-	&.success { color: @twitter_blue; }
-	&.tweet {
-		min-height: 3em;
-		img { float: left; margin-top: 0.5em; }
-		span {
-			display: block;
-			padding-left: 3.8em;
-			color: @white;
-			small { color: @text; }
+article {
+	position: relative; padding: @gap 1em 1em 1em;
+	p {
+		margin: 1em 0;
+		line-height: 1.4;
+		&.error { color: @google_red; }
+		&.success { color: @twitter_blue; }
+		&.tweet {
+			min-height: 56px;
+			img { float: left; margin-top: 0.5em; }
+			span {
+				display: block;
+				padding-left: 64px;
+				color: @white;
+				small { color: @text; }
+			}
+			a.hash { color: @google_green; }
 		}
-		a.hash { color: @google_green; }
 	}
+}
+
+.fa-twitter-square, .fa-refresh {
+	margin: 0 !important;
+	padding: 16px;
+	font-size: 56px;
 }
 .fa-map-marker {
 	color: @google_red;
+}
+.fa-search {
+	display: inline-block; margin-right: 0.35em;
 }
