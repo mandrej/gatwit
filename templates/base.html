@@ -8,7 +8,6 @@
     <title>LAJNA</title>
     <link rel="stylesheet" href="https://netdna.bootstrapcdn.com/font-awesome/4.0.3/css/font-awesome.css">
     <link rel="stylesheet" href="/static/css/base.css">
-    <script src="http://cdnjs.cloudflare.com/ajax/libs/zepto/1.1.3/zepto.min.js"></script>
 </head>
 <body>
     <header>
@@ -19,31 +18,21 @@
     <div id="wrapper">
         <input type="checkbox" id="swipe" data-function="swipe"/>
         <nav class="menu">
-            <form action="/" method="get">
-                <i class="fa fa-search"></i>
-                <input type="text" name="q" value="{{ query }}">
+            <form action="/" method="post">
+                <label for="place">Type-in place</label>
+                <input type="text" name="place" id="place" value="{{ city.name }}" placeholder="<Enter>">
             </form>
-            <ul id="places">
-                {% for place, loc in cities.items() %}
-                    <li class="{% if place == city %}selected{% endif %}">
-                        <a href="#" data-place="{{ place }}">{{ place }}</a>
-                    </li>
-                {% endfor %}
-            </ul>
-            <script>
-                $(function() {
-                    $('#places a').click(function(ev) {
-                        ev.preventDefault();
-                        $.post('/', {place: $(this).data('place')}, function(response) {
-                            if (response) location.href = '/';
-                        });
-                    })
-                })
-            </script>
+            <p>or leave blank to get place from request.</p>
+            <form action="/" method="get">
+                <label for="search">Search within {{ radius }}</label>
+                <input type="text" name="q" id="search" value="{{ query }}" placeholder="<Enter>">
+            </form>
+{#            <p>{{ city.geocode }}</p>#}
+            {% if error %}<p>{{ error|safe }}</p>{% endif %}
+            <footer><a href="https://twitter.com/@mandrej">@mandrej</a>, 2013-{{ year() }}</footer>
         </nav>
         <article id="main">{% block content %}{% endblock %}</article>
     </div>
-    <footer><a href="https://twitter.com/@mandrej">@mandrej</a> 2013-{{ year() }}</footer>
     <script>
         (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
             (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),

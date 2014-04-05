@@ -20,39 +20,21 @@ from webapp2 import WSGIApplication
 from webapp2_extras import jinja2, sessions
 from jinja2.utils import Markup
 from geopy import geocoders
+from geopy.geocoders.googlev3 import GQueryError
 
 CONSUMER_KEY = 'uvkMU4MFVn2N3lgizdFRfQ'
 CONSUMER_SECRET = 'HGsVbzsYjCDhI0Y6u2vurlvEWrFqBxZkkQAu2ASnQ'
 TOKEN_URL = 'https://api.twitter.com/oauth2/token'
-DEVEL = os.environ.get('SERVER_SOFTWARE', '').startswith('Dev')
-RADIUS = '20mi'
 
 GV3 = geocoders.GoogleV3()
 GIP = pygeoip.GeoIP('pygeoip/GeoLiteCity.dat')
 CACHE = MemoryCache(600)
 
+DEVEL = os.environ.get('SERVER_SOFTWARE', '').startswith('Dev')
+RADIUS = '10mi'
 # convert -size 48x48 xc:transparent gif:- | base64
 BLANK = 'R0lGODlhMAAwAPAAAAAAAAAAACH5BAEAAAAALAAAAAAwADAAAAIxhI+py+0Po5y02ouz3rz7D4biSJbmiabqyrbuC8fyTNf2jef6zvf+DwwKh8Si8egpAAA7'
-CITY = collections.OrderedDict([
-    (u'---', 'Automatic'),
-    (u'Novi Sad', '45.26353,19.84388'),
-    (u'Beograd', '44.82056,20.46222'),
-    (u'Smederevo', '44.66667,20.93333'),
-    # (u'Požarevac', '44.61667,21.18333'),
-    (u'Šabac', '44.75423,19.69975'),
-    (u'Valjevo', '44.27437,19.89110'),
-    (u'Kragujevac', '44.01271,20.92674'),
-    (u'Jagodina', '43.98139,21.24556'),
-    (u'Zaječar', '43.92048,22.27742'),
-    (u'Čačak', '43.88891,20.35038'),
-    (u'Kraljevo', '43.72342,20.68697'),
-    (u'Niš', '43.31938,21.89633'),
-    (u'Leskovac', '43.00000,21.95000'),
-    # (u'CT', '42.39089,18.91398'),
-    # (u'PG', '42.44257,19.26865'),
-    # (u'BD', '42.28806,18.84250'),
-    # (u'BR', '42.09383,19.10027'),
-])
+DEFAULT = {'name': u'Belgrade, Serbia', 'geocode': '44.8205556,20.4622222,%s' % RADIUS}
 
 
 def year():
@@ -90,13 +72,42 @@ def timesince_jinja(value, default="just now"):
 
 
 def geo_address(arg):
-    # {u'coordinates': [20.3854038, 44.851479], u'type': u'Point'} <type 'dict'>
+    """ Reverse geocoding
+        Args:
+            arg (dict): {u'coordinates': [20.4717135, 44.760376], u'type': u'Point'}
+            results (list): [(u'OMV pumpa, Belgrade, Serbia', (44.7605262, 20.4730118)), ...]
+
+        Returns:
+            str: u'OMV pumpa, Belgrade, Serbia'
+
+    """
     coordinates = arg['coordinates']
     coordinates.reverse()
     point_str = ','.join(map(str, coordinates))
     results = GV3.reverse(point_str, sensor=False)
-    location, point = results[0]
+    location, point = results[0]  # first result
     return location
+
+
+def geo_location(arg):
+    """ Geocoding
+        Args:
+            arg (str): 'Sabac'
+            results (tuple): (u'\u0160abac, Serbia', (44.75423, 19.699751))
+
+        Returns:
+            tuple: u'\u0160abac, Serbia', '44.75423,19.699751'
+
+    """
+    try:
+        results = GV3.geocode(arg, sensor=False)
+    except GQueryError as e:
+        return None, e
+    except ValueError as e:
+        return None, e
+    else:
+        location, point = results
+        return location, ','.join(map(str, point))
 
 
 class AppAuthHandler(tweepy.auth.AuthHandler):
@@ -159,7 +170,7 @@ class BaseHandler(webapp2.RequestHandler):
         self.response.set_status(code)
 
     def render_template(self, filename, kwargs):
-        kwargs['city'] = self.session.get('city', 'Beograd')
+        kwargs['city'] = self.session.get('city', DEFAULT)
         self.response.write(self.jinja2.render_template(filename, **kwargs))
 
     def render_json(self, data):
@@ -170,21 +181,7 @@ class BaseHandler(webapp2.RequestHandler):
 class Index(BaseHandler):
     def get(self):
         query = self.request.get('q', '')
-        city = self.session.get('city', 'Beograd')
-
-        if city == '---':
-            record = GIP.record_by_addr(self.request.remote_addr)
-            if all(['latitude', 'longitude', 'city']) in record:
-                geocode = '{0},{1}'.format('{latitude:.4f},{longitude:.4f}'.format(**record), RADIUS)
-            else:
-                geocode = '{0},{1}'.format(CITY['Beograd'], RADIUS)
-                self.session['city'] = '---'
-        else:
-            try:
-                geocode = '{0},{1}'.format(CITY[city], RADIUS)
-            except KeyError:
-                geocode = '{0},{1}'.format(CITY['Beograd'], RADIUS)
-                self.session['city'] = 'Beograd'
+        city = self.session.get('city', None)
 
         api = CACHE.get('api')
         if api is None:
@@ -200,19 +197,30 @@ class Index(BaseHandler):
             )
             CACHE.store('api', api)
 
-        collection = api.search(q=query, geocode=geocode, count=20)  # <class 'tweepy.models.ResultSet'>
+        collection = api.search(q=query, geocode=city['geocode'], count=20)  # <class 'tweepy.models.ResultSet'>
         # logging.error(vars(collection[0].user))
         self.render_template('index.html', {
             'collection': collection,
             'query': query,
-            'cities': CITY,
+            'radius': RADIUS,
+            'error': self.app.registry.get('error', None),
             'blank': 'data:image/gif;base64,%s' % BLANK
         })
 
     def post(self):
-        self.session['city'] = self.request.get('place')
-        self.render_json(True)
-
+        location, coordinates = geo_location(self.request.get('place'))
+        if location is None:
+            record = GIP.record_by_addr(self.request.remote_addr)
+            if all(['latitude', 'longitude', 'city']) in record:
+                geocode = '{0},{1}'.format('{latitude:.4f},{longitude:.4f}'.format(**record), RADIUS)
+                self.session['city'] = {'name': record['city'], 'geocode': geocode}
+            else:
+                self.session['city'] = DEFAULT
+                self.app.registry['error'] = '%s<br>Showing %s as default place' % (coordinates, DEFAULT['name'])
+        else:
+            self.session['city'] = {'name': location, 'geocode': '{0},{1}'.format(coordinates, RADIUS)}
+            self.app.registry['error'] = None
+        self.redirect('/')
 
 CONFIG = {
     'webapp2_extras.jinja2': {

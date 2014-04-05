@@ -24,11 +24,12 @@ a {
 	color: @google_orange;
 	text-decoration: none;
 	outline: none;
+	.transition(0.3s);
 	img { border: none; vertical-align: middle; }
 }
 
 body {
-	background: @paper;
+	background: darken(@twitter_blue, 60%);
 	width: 100%;
     height: 100%;
 	color: @text;
@@ -60,31 +61,34 @@ input[data-function*='swipe'] {
 	bottom: 0;
 	.box-sizing(border-box);
 	width: @menuOffset;
-	background: darken(@paper, 10%);
+	background: rgba(0,0,0,.8);
 	padding: 1em;
 	z-index: 1;
 	text-shadow: none;
 	.transform(translate3d(0,0,0));
 	.transition(transform, .5s);
+	p { margin: 0.5em 0; font-size: 90%; }
 	form {
+		margin: 1em 0;
+		label {
+			display: block;
+			font-size: 1.5em;
+			margin-bottom: 0.5em;
+		}
 		input {
+			width: 100%;
 			font-size: 1.5em;
 			color: @twitter_blue;
-			background: @paper;
+			background: transparent;
 			border: none;
 		}
 	}
-	#places {
-		margin: 0.7em 0;
-		li {
-			list-style: none;
-			font-size: 1.4em;
-			a {
-				color: @twitter_blue;
-				display: block;
-			}
-			&.selected a { color: @white; }
-		}
+	footer {
+		display: block;
+		position: absolute;
+		right: 16px;
+		bottom: 2em;
+		font-size: 90%;
 	}
 }
 
@@ -93,7 +97,7 @@ header {
 	width: 100%;
 	height: @gap;
 	z-index: 1;
-	background: lighten(@paper, 5%);
+	background: darken(@twitter_blue, 50%);
 	color: @twitter_blue;
 	a {
 		color: @twitter_blue;
@@ -114,27 +118,28 @@ article#main {
 		min-height: 56px;
 		img { float: left; margin-top: 0.5em; }
 		p {
-	//		line-height: 1.4;
 			padding-left: 64px;
 			small { color: @text; }
 		}
 		a.hash { color: @google_green; }
+		.fa-map-marker {
+			margin: 0;
+			font-size: inherit;
+			color: @google_red;
+		}
 	}
 }
-footer {
-	font-size: 90%;
-	text-align: center;
+
+.noresults {
+	margin: 1em 0;
+	padding: 2em;
+	font-size: 1.5em;
+	background: rgba(0,0,0,.8);
+	color: @white;
 }
 
-.fa-bars, .fa-twitter-square, .fa-refresh {
+.fa-bars, .fa-refresh {
 	margin: 0 !important;
 	padding: 16px;
 	font-size: 56px;
-}
-.fa-map-marker {
-	color: @google_red;
-}
-.fa-search {
-	font-size: 1.5em;
-	display: inline-block; margin-right: 0.35em;
 }
