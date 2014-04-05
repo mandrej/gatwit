@@ -11,10 +11,10 @@ import tweepy
 import urllib
 import urllib2
 import logging
-import datetime
 import pygeoip
 import collections
 import base64
+from datetime import datetime
 from tweepy.cache import MemoryCache
 from webapp2 import WSGIApplication
 from webapp2_extras import jinja2, sessions
@@ -53,6 +53,11 @@ CITY = collections.OrderedDict([
 ])
 
 
+def year():
+    date = datetime.now()
+    return date.strftime('%Y')
+
+
 def twitterize(text):
     text = unicode(text.encode('utf-8'), 'utf-8')
     twit_link = re.compile(r'@(\w+)', re.IGNORECASE)
@@ -65,7 +70,7 @@ def twitterize(text):
 
 
 def timesince_jinja(value, default="just now"):
-    now = datetime.datetime.utcnow()
+    now = datetime.utcnow()
     diff = now - value
     periods = (
         (diff.days / 365, "year", "years"),
@@ -209,6 +214,9 @@ class Index(BaseHandler):
 
 CONFIG = {
     'webapp2_extras.jinja2': {
+        'globals': {
+            'year': year
+        },
         'filters': {
             'twitterize': twitterize,
             'timesince': timesince_jinja,
