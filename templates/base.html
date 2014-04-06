@@ -28,7 +28,7 @@
                 <input type="text" name="q" id="search" value="{{ query }}" placeholder="<Enter>">
             </form>
 {#            <p>{{ city.geocode }}</p>#}
-            {% if error %}<p>{{ error|safe }}</p>{% endif %}
+            {% for flash in flashes %}<p class="{{ flash.1 }}">{{ flash.0 }}</p>{% endfor %}
             <footer><a href="https://twitter.com/@mandrej">@mandrej</a>, 2013-{{ year() }}</footer>
         </nav>
         <article id="main">{% block content %}{% endblock %}</article>

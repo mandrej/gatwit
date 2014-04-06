@@ -102,9 +102,9 @@ def geo_location(arg):
     try:
         results = GV3.geocode(arg, sensor=False)
     except GQueryError as e:
-        return None, e
+        return None, e.message
     except ValueError as e:
-        return None, e
+        return None, e.message
     else:
         location, point = results
         return location, ','.join(map(str, point))
@@ -146,10 +146,6 @@ class BaseHandler(webapp2.RequestHandler):
     def session(self):
         return self.session_store.get_session()
 
-    @webapp2.cached_property
-    def session_store(self):
-        return sessions.get_store(request=self.request)
-
     def handle_exception(self, exception, debug):
         code = 500
         data = {}
@@ -173,15 +169,11 @@ class BaseHandler(webapp2.RequestHandler):
         kwargs['city'] = self.session.get('city', DEFAULT)
         self.response.write(self.jinja2.render_template(filename, **kwargs))
 
-    def render_json(self, data):
-        self.response.content_type = 'application/json; charset=utf-8'
-        self.response.write(json.dumps(data))
-
 
 class Index(BaseHandler):
     def get(self):
         query = self.request.get('q', '')
-        city = self.session.get('city', None)
+        city = self.session.get('city', DEFAULT)
 
         api = CACHE.get('api')
         if api is None:
@@ -203,7 +195,7 @@ class Index(BaseHandler):
             'collection': collection,
             'query': query,
             'radius': RADIUS,
-            'error': self.app.registry.get('error', None),
+            'flashes': self.session.get_flashes(),
             'blank': 'data:image/gif;base64,%s' % BLANK
         })
 
@@ -214,12 +206,15 @@ class Index(BaseHandler):
             if all(['latitude', 'longitude', 'city']) in record:
                 geocode = '{0},{1}'.format('{latitude:.4f},{longitude:.4f}'.format(**record), RADIUS)
                 self.session['city'] = {'name': record['city'], 'geocode': geocode}
+                self.session.add_flash('GeoIP found %s from request.' % record['city'], level='')
             else:
                 self.session['city'] = DEFAULT
-                self.app.registry['error'] = '%s<br>Showing %s as default place' % (coordinates, DEFAULT['name'])
+                self.session.add_flash(coordinates, level='error')
+                self.session.add_flash('GeoIP results incomplete.', level='error')
+                self.session.add_flash('Using %s as default place.' % DEFAULT['name'], level='')
         else:
             self.session['city'] = {'name': location, 'geocode': '{0},{1}'.format(coordinates, RADIUS)}
-            self.app.registry['error'] = None
+            self.session.add_flash('Geocoder found %s' % location, level='')
         self.redirect('/')
 
 CONFIG = {
@@ -237,7 +232,7 @@ CONFIG = {
             'extensions': ['jinja2.ext.autoescape', 'jinja2.ext.with_']
         }
     },
-    'webapp2_extras.sessions': {'secret_key': 'bjKqvIazjfbbVOqxSvjkMbBjpu9UA2jl'}
+    'webapp2_extras.sessions': {'secret_key': 'bjKqvIazjfbbVOqxSvjkMbBjpu9UA2jl', 'session_max_age': 86400}
 }
 # < /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c${1:-32};echo;
 app = WSGIApplication([

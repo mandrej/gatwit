@@ -67,7 +67,10 @@ input[data-function*='swipe'] {
 	text-shadow: none;
 	.transform(translate3d(0,0,0));
 	.transition(transform, .5s);
-	p { margin: 0.5em 0; font-size: 90%; }
+	p {
+		margin: 0.5em 0; font-size: 90%;
+		&.error { color: @google_red; }
+	}
 	form {
 		margin: 1em 0;
 		label {
