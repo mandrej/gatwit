@@ -20,14 +20,15 @@
         <nav class="menu">
             <form action="/" method="post">
                 <label for="place">Type-in place</label>
-                <input type="text" name="place" id="place" value="{{ city.name }}" placeholder="<Enter>">
+                <input type="text" name="place" id="place" value="{{ city.name }}"
+                       placeholder="<Enter>" onfocus="this.value=''">
             </form>
             <p>or leave blank to get place from request.</p>
             <form action="/" method="get">
                 <label for="search">Search within {{ radius }}</label>
-                <input type="text" name="q" id="search" value="{{ query }}" placeholder="<Enter>">
+                <input type="text" name="q" id="search" value="{{ query }}"
+                       placeholder="<Enter>" onfocus="this.value=''">
             </form>
-{#            <p>{{ city.geocode }}</p>#}
             {% for flash in flashes %}<p class="{{ flash.1 }}">{{ flash.0 }}</p>{% endfor %}
             <footer><a href="https://twitter.com/@mandrej">@mandrej</a>, 2013-{{ year() }}</footer>
         </nav>
