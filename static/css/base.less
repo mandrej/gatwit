@@ -18,6 +18,7 @@
 .clearing {
 	&:after { clear: both; display: block; content: "."; height: 0; visibility: hidden; }
 }
+.black_shadow { text-shadow: -1px -1px 1px fade(black, 25%); }
 
 * { margin: 0; padding: 0; }
 a {
@@ -44,6 +45,7 @@ body {
 label[data-function*='swipe'] {
     color: @twitter_blue;
 	.transition(0.3s);
+	.black_shadow;
 	&:hover { color: @white; }
 }
 input[data-function*='swipe'] {
@@ -104,8 +106,10 @@ header {
 	z-index: 1;
 	background: darken(@twitter_blue, 50%);
 	color: @twitter_blue;
+	.drop-shadow(0, 1px, 10px, 0.5);
 	a {
 		color: @twitter_blue;
+		.black_shadow;
 		&:hover { color: @white; }
 	}
 	h1 {
