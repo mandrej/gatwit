@@ -21,7 +21,7 @@
                 </small>
             </p>
             <p>
-                <a href="https://twitter.com/{{ obj.user.screen_name }}" class="from">@{{ obj.user.screen_name|default }}</a>
+                <a class="twit" href="https://twitter.com/{{ obj.user.screen_name }}">@{{ obj.user.screen_name|default }}</a>
                 {{ obj.user.friends_count }} friends,
                 {{ obj.user.followers_count }} followers<br>
                 {{ obj.text|twitterize|urlize }}

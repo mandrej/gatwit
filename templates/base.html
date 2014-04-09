@@ -30,7 +30,7 @@
                        placeholder="<Enter>" onfocus="this.value=''">
             </form>
             {% for flash in flashes %}<p class="{{ flash.1 }}">{{ flash.0 }}</p>{% endfor %}
-            <footer><a href="https://twitter.com/@mandrej">@mandrej</a>, 2013-{{ year() }}</footer>
+            <footer><a class="twit" href="https://twitter.com/@mandrej">@mandrej</a>, 2013-{{ year() }}</footer>
         </nav>
         <article id="main">{% block content %}{% endblock %}</article>
     </div>
