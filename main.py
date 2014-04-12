@@ -14,7 +14,7 @@ import logging
 import pygeoip
 import collections
 import base64
-from datetime import datetime
+import datetime
 from tweepy.cache import MemoryCache
 from webapp2 import WSGIApplication
 from webapp2_extras import jinja2, sessions
@@ -38,7 +38,7 @@ DEFAULT = {'name': u'Belgrade, Serbia', 'geocode': '44.8205556,20.4622222,%s' % 
 
 
 def year():
-    date = datetime.now()
+    date = datetime.datetime.now()
     return date.strftime('%Y')
 
 
@@ -54,7 +54,7 @@ def twitterize(text):
 
 
 def timesince_jinja(value, default="just now"):
-    now = datetime.utcnow()
+    now = datetime.datetime.utcnow()
     diff = now - value
     periods = (
         (diff.days / 365, "year", "years"),
@@ -110,6 +110,17 @@ def geo_location(arg):
         return location, ','.join(map(str, point))
 
 
+class LazyEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, datetime.datetime):
+            return obj.isoformat()
+        if isinstance(obj, tweepy.API):
+            return '%s' % obj
+        if isinstance(obj, tweepy.models.User):
+            return '%s' % obj
+        return obj
+
+
 class AppAuthHandler(tweepy.auth.AuthHandler):
     # http://shogo82148.github.io/blog/2013/05/09/application-only-authentication-with-tweepy/
     def __init__(self):
@@ -124,7 +135,6 @@ class AppAuthHandler(tweepy.auth.AuthHandler):
         response = urllib2.urlopen(req, data)
         json_response = json.loads(response.read())
         self._access_token = json_response['access_token']
-        logging.error(self._access_token)
 
     def apply_auth(self, url, method, headers, parameters):
         headers['Authorization'] = 'Bearer ' + self._access_token
@@ -191,7 +201,8 @@ class Index(BaseHandler):
         )
 
         collection = api.search(q=query, geocode=city['geocode'], count=20)  # <class 'tweepy.models.ResultSet'>
-        # logging.error(vars(collection[0].user))
+        # first = vars(collection[0])
+        # logging.error(json.dumps(first, cls=LazyEncoder))
         self.render_template('index.html', {
             'collection': collection,
             'query': query,

@@ -27,7 +27,8 @@
                 </a>
                 {{ obj.user.friends_count }} friends,
                 {{ obj.user.followers_count }} followers<br>
-                {{ obj.text|twitterize|urlize }}
+                {{ obj.text|twitterize|urlize }}<br>
+{#                {{ obj.in_reply_to_user_id_str }}#}
 {#                <br>{{ obj.entities|pprint }}#}
 {#                <br><small>{% for k,v in obj.__dict__.items() %}{{ k }}: {{ v|pprint }}, {% endfor %}</small>#}
             </p>
