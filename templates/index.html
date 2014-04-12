@@ -13,8 +13,9 @@
             <p>
                 <small>{{ obj.source }}, {{ obj.created_at|timesince }},
                     {% if obj.coordinates %}
-                        <i class="fa fa-map-marker"></i>
-                        {{ obj.coordinates|geo_address }}
+                        <i class="fa fa-map-marker">
+                            {{ obj.coordinates|geo_address }}
+                        </i>
                     {% else %}
                         {{ obj.user.location }}
                     {% endif %}

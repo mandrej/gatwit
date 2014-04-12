@@ -20,7 +20,8 @@
 }
 .black_shadow { text-shadow: -1px -1px 1px fade(black, 25%); }
 
-* { margin: 0; padding: 0; }
+* { margin: 0; padding: 0; .box-sizing(border-box); }
+html, body { min-height: 100%; }
 a {
 	color: @google_orange;
 	text-decoration: none;
@@ -33,15 +34,12 @@ a.hash { color: @google_green; }
 
 body {
 	background: @paper;
-	width: 100%;
-    height: 100%;
 	color: @text;
 	font-family: @default_font;
     font-size: 16px;
 }
 
 #wrapper {
-	min-height: 100%;
 	overflow: hidden;
 }
 label[data-function*='swipe'] {
@@ -63,7 +61,6 @@ input[data-function*='swipe'] {
 	top: 0;
 	left: -@menuOffset;
 	bottom: 0;
-	.box-sizing(border-box);
 	width: @menuOffset;
 	background: rgba(255,255,255,.1);
 	padding: 1em;
@@ -84,7 +81,6 @@ input[data-function*='swipe'] {
 		}
 		input {
 			width: 100%;
-			.box-sizing(border-box);
 			padding-right: 1em;
 			font-size: 1.5em;
 			color: @twitter_blue;

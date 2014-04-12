@@ -31,7 +31,7 @@ GIP = pygeoip.GeoIP('pygeoip/GeoLiteCity.dat')
 CACHE = MemoryCache(600)
 
 DEVEL = os.environ.get('SERVER_SOFTWARE', '').startswith('Dev')
-RADIUS = '10mi'
+RADIUS = '10km'
 # convert -size 48x48 xc:transparent gif:- | base64
 BLANK = 'R0lGODlhMAAwAPAAAAAAAAAAACH5BAEAAAAALAAAAAAwADAAAAIxhI+py+0Po5y02ouz3rz7D4biSJbmiabqyrbuC8fyTNf2jef6zvf+DwwKh8Si8egpAAA7'
 DEFAULT = {'name': u'Belgrade, Serbia', 'geocode': '44.8205556,20.4622222,%s' % RADIUS}
@@ -112,12 +112,11 @@ def geo_location(arg):
 
 class AppAuthHandler(tweepy.auth.AuthHandler):
     # http://shogo82148.github.io/blog/2013/05/09/application-only-authentication-with-tweepy/
-    def __init__(self, consumer_key, consumer_secret):
-        token_credential = urllib.quote(consumer_key) + ':' + urllib.quote(consumer_secret)
+    def __init__(self):
+        token_credential = urllib.quote(CONSUMER_KEY) + ':' + urllib.quote(CONSUMER_SECRET)
         credential = base64.b64encode(token_credential)
 
-        value = {'grant_type': 'client_credentials'}
-        data = urllib.urlencode(value)
+        data = urllib.urlencode({'grant_type': 'client_credentials'})
         req = urllib2.Request(TOKEN_URL)
         req.add_header('Authorization', 'Basic ' + credential)
         req.add_header('Content-Type', 'application/x-www-form-urlencoded;charset=UTF-8')
@@ -125,6 +124,7 @@ class AppAuthHandler(tweepy.auth.AuthHandler):
         response = urllib2.urlopen(req, data)
         json_response = json.loads(response.read())
         self._access_token = json_response['access_token']
+        logging.error(self._access_token)
 
     def apply_auth(self, url, method, headers, parameters):
         headers['Authorization'] = 'Bearer ' + self._access_token
@@ -175,19 +175,20 @@ class Index(BaseHandler):
         query = self.request.get('q', '')
         city = self.session.get('city', DEFAULT)
 
-        api = CACHE.get('api')
-        if api is None:
-            auth = AppAuthHandler(CONSUMER_KEY, CONSUMER_SECRET)
-            # http://www.nirg.net/blog/2013/04/using-tweepy/
-            api = tweepy.API(
-                [auth],
-                retry_count=3,
-                retry_delay=5,
-                retry_errors=set([401, 404, 500, 503]),
-                monitor_rate_limit=True,
-                wait_on_rate_limit=True
-            )
-            CACHE.store('api', api)
+        auth = CACHE.get('auth')
+        if auth is None:
+            auth = AppAuthHandler()
+            CACHE.store('auth', auth)
+
+        # http://www.nirg.net/blog/2013/04/using-tweepy/
+        api = tweepy.API(
+            [auth],
+            retry_count=3,
+            retry_delay=5,
+            retry_errors=set([401, 404, 500, 503]),
+            monitor_rate_limit=True,
+            wait_on_rate_limit=True
+        )
 
         collection = api.search(q=query, geocode=city['geocode'], count=20)  # <class 'tweepy.models.ResultSet'>
         # logging.error(vars(collection[0].user))
