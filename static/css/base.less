@@ -11,7 +11,6 @@
 
 @paper: #000;
 @text: #999;
-@white: #fff;
 @gap: 80px;
 @menuOffset: 384px;
 
@@ -19,6 +18,11 @@
 	&:after { clear: both; display: block; content: "."; height: 0; visibility: hidden; }
 }
 .black_shadow { text-shadow: -1px -1px 1px fade(black, 25%); }
+.top_anchor {
+	margin: 0 !important;
+	padding: 16px;
+	font-size: 56px;
+}
 
 * { margin: 0; padding: 0; .box-sizing(border-box); }
 html, body { min-height: 100%; }
@@ -39,35 +43,24 @@ body {
     font-size: 16px;
 }
 
-#wrapper {
-	overflow: hidden;
-}
-label[data-function*='swipe'] {
-    color: @twitter_blue;
-	.transition(0.3s);
-	.black_shadow;
-	&:hover { color: @white; }
-}
-input[data-function*='swipe'] {
-	position: absolute;
-	opacity: 0;
-	&:checked ~ .menu, &:checked ~ #main {
-		.transform(translate3d(@menuOffset,0,0));
-	}
-}
-.menu {
+// http://codepen.io/chriscoyier/pen/umEgv?editors=110
+nav#main-nav {
 	position: fixed;
-	margin-top: @gap;
+	padding: @gap 1em 1em 1em;
 	top: 0;
 	left: -@menuOffset;
-	bottom: 0;
 	width: @menuOffset;
-	background: rgba(255,255,255,.1);
-	padding: 1em;
+	height: 100%;
+	background: fade(white, 10%);
 	z-index: 1;
-	text-shadow: none;
-	.transform(translate3d(0,0,0));
 	.transition(transform, .5s);
+	&:target, &:target ~ #main {
+		.transform(translate3d(@menuOffset,0,0));
+	}
+	&:target ~ header {
+		.open { display: none; }
+		.close { display: block; }
+	}
 	p {
 		margin: 0.5em 0; font-size: 90%;
 		&.error { color: @google_red; }
@@ -102,13 +95,18 @@ header {
 	width: 100%;
 	height: @gap;
 	z-index: 1;
-	background: fade(@google_blue, 80%) url(/static/img/overlay.png);
 	color: @twitter_blue;
+	background: darken(@google_blue, 10%) url(/static/img/overlay.png);
 	.drop-shadow(0, 1px, 10px, 0.5);
 	a {
 		color: @twitter_blue;
 		.black_shadow;
-		&:hover { color: @white; }
+		&:hover { color: white; }
+		&.fa-bars, &.fa-refresh {
+			.top_anchor;
+			&.open { display: block; }
+			&.close { display: none; }
+		}
 	}
 	h1 {
 		padding: 20px 16px;
@@ -116,9 +114,9 @@ header {
 		line-height: 1;
 	}
 }
+
 article#main {
-	position: relative; padding: @gap 1em 1em 1em;
-	.transform(translate3d(0,0,0));
+	padding: @gap 1em 1em 1em;
 	.transition(transform, .5s);
 	.tweet {
 		margin: 1em 0;
@@ -128,11 +126,7 @@ article#main {
 			padding-left: 64px;
 			small { color: @text; }
 		}
-		.fa-map-marker {
-			margin: 0;
-			font-size: inherit;
-			color: @google_red;
-		}
+		.fa-map-marker { color: @google_red; }
 	}
 }
 
@@ -141,11 +135,5 @@ article#main {
 	padding: 2em;
 	font-size: 1.5em;
 	background: fade(@twitter_blue, 80%);
-	color: @white;
-}
-
-.fa-bars, .fa-refresh {
-	margin: 0 !important;
-	padding: 16px;
-	font-size: 56px;
+	color: white;
 }

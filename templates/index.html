@@ -7,7 +7,7 @@
 {% block content %}
     {% for obj in collection %}
         <div id="{{ obj.id }}" class="tweet">
-            <a href="https://twitter.com/{{ obj.user.screen_name }}">
+            <a href="https://twitter.com/{{ obj.user.screen_name }}" target="_blank">
                 <img src="{{ blank }}" style="background: url({{ obj.user.profile_image_url }})">
             </a>
             <p>
@@ -22,7 +22,9 @@
                 </small>
             </p>
             <p>
-                <a class="twit" href="https://twitter.com/{{ obj.user.screen_name }}">@{{ obj.user.screen_name|default }}</a>
+                <a class="twit" href="https://twitter.com/{{ obj.user.screen_name }}" target="_blank">
+                    @{{ obj.user.screen_name|default }}
+                </a>
                 {{ obj.user.friends_count }} friends,
                 {{ obj.user.followers_count }} followers<br>
                 {{ obj.text|twitterize|urlize }}
