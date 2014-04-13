@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 
 {% block paginator %}
-    <a href="{{ collection.refresh_url }}" class="fa fa-refresh pull-right"></a>
+    <a href="{{ refresh_url }}" class="fa fa-refresh pull-right"></a>
 {% endblock %}
 
 {% macro tweet(obj, nest=0) %}

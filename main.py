@@ -180,6 +180,20 @@ class BaseHandler(webapp2.RequestHandler):
         self.response.write(self.jinja2.render_template(filename, **kwargs))
 
 
+def thread(api, obj, num):
+    n = 0
+    while obj.in_reply_to_status_id and num > n:
+        try:
+            item = api.get_status(obj.in_reply_to_status_id)
+        except tweepy.TweepError as e:
+            logging.error(e.reason)
+            pass
+        else:
+            yield item.__dict__
+            obj = item
+        n += 1
+
+
 class Index(BaseHandler):
     def get(self):
         query = self.request.get('q', '')
@@ -201,26 +215,19 @@ class Index(BaseHandler):
         )
 
         collection = []
-        query = api.search(q=query, geocode=city['geocode'], count=20)  # <class 'tweepy.models.ResultSet'>
-        for obj in query:
+        results = api.search(q=query, geocode=city['geocode'], count=20)  # <class 'tweepy.models.ResultSet'>
+        for obj in results:
             item = obj.__dict__
-            if obj.in_reply_to_status_id:
-                item["thread"] = []
-                thread = api.get_status(obj.in_reply_to_status_id)
-                item["thread"].append(thread.__dict__)
-                if thread.in_reply_to_status_id:
-                    thread = api.get_status(thread.in_reply_to_status_id)
-                    item["thread"].append(thread.__dict__)
-
-            elif obj.in_reply_to_user_id:
+            item["thread"] = list(thread(api, obj, 2))
+            # if obj.in_reply_to_user_id:
                 # api.get_user(obj.in_reply_to_user_id) Sorry, you are not authorized to see this status
-                pass
             collection.append(item)
 
         # first = vars(collection[0])
         # logging.error(json.dumps(first, cls=LazyEncoder))
         self.render_template('index.html', {
             'collection': collection,
+            'refresh_url': results.refresh_url,
             'query': query,
             'radius': RADIUS,
             'flashes': self.session.get_flashes(),
