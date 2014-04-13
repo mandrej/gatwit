@@ -200,7 +200,23 @@ class Index(BaseHandler):
             wait_on_rate_limit=True
         )
 
-        collection = api.search(q=query, geocode=city['geocode'], count=20)  # <class 'tweepy.models.ResultSet'>
+        collection = []
+        query = api.search(q=query, geocode=city['geocode'], count=20)  # <class 'tweepy.models.ResultSet'>
+        for obj in query:
+            item = obj.__dict__
+            if obj.in_reply_to_status_id:
+                item["thread"] = []
+                thread = api.get_status(obj.in_reply_to_status_id)
+                item["thread"].append(thread.__dict__)
+                if thread.in_reply_to_status_id:
+                    thread = api.get_status(thread.in_reply_to_status_id)
+                    item["thread"].append(thread.__dict__)
+
+            elif obj.in_reply_to_user_id:
+                # api.get_user(obj.in_reply_to_user_id) Sorry, you are not authorized to see this status
+                pass
+            collection.append(item)
+
         # first = vars(collection[0])
         # logging.error(json.dumps(first, cls=LazyEncoder))
         self.render_template('index.html', {

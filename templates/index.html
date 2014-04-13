@@ -4,35 +4,42 @@
     <a href="{{ collection.refresh_url }}" class="fa fa-refresh pull-right"></a>
 {% endblock %}
 
+{% macro tweet(obj, nest=0) %}
+    <div id="{{ obj.id }}" class="tweet" style="margin-left: {{ '%spx' % (32 * nest) }}">
+        <a href="https://twitter.com/{{ obj.user.screen_name }}" target="_blank">
+            <img src="{{ blank }}" style="background: url({{ obj.user.profile_image_url }})">
+        </a>
+        <p>
+            <small>{{ obj.source }}, {{ obj.created_at|timesince }},
+                {% if obj.coordinates %}
+                    <i class="fa fa-map-marker">
+                        {{ obj.coordinates|geo_address }}
+                    </i>
+                {% else %}
+                    {{ obj.user.location }}
+                {% endif %}
+            </small>
+        </p>
+        <p>
+            <a class="twit" href="https://twitter.com/{{ obj.user.screen_name }}" target="_blank">
+                @{{ obj.user.screen_name|default }}
+            </a>
+            {{ obj.user.friends_count }} friends,
+            {{ obj.user.followers_count }} followers<br>
+            {{ obj.text|twitterize|urlize }}
+{#            {% for k,v in obj.__dict__.items() %}{{ k }}: {{ v|pprint }}, {% endfor %}#}
+        </p>
+    </div>
+{% endmacro %}
+
 {% block content %}
     {% for obj in collection %}
-        <div id="{{ obj.id }}" class="tweet">
-            <a href="https://twitter.com/{{ obj.user.screen_name }}" target="_blank">
-                <img src="{{ blank }}" style="background: url({{ obj.user.profile_image_url }})">
-            </a>
-            <p>
-                <small>{{ obj.source }}, {{ obj.created_at|timesince }},
-                    {% if obj.coordinates %}
-                        <i class="fa fa-map-marker">
-                            {{ obj.coordinates|geo_address }}
-                        </i>
-                    {% else %}
-                        {{ obj.user.location }}
-                    {% endif %}
-                </small>
-            </p>
-            <p>
-                <a class="twit" href="https://twitter.com/{{ obj.user.screen_name }}" target="_blank">
-                    @{{ obj.user.screen_name|default }}
-                </a>
-                {{ obj.user.friends_count }} friends,
-                {{ obj.user.followers_count }} followers<br>
-                {{ obj.text|twitterize|urlize }}<br>
-{#                {{ obj.in_reply_to_user_id_str }}#}
-{#                <br>{{ obj.entities|pprint }}#}
-{#                <br><small>{% for k,v in obj.__dict__.items() %}{{ k }}: {{ v|pprint }}, {% endfor %}</small>#}
-            </p>
-        </div>
+        {{ tweet(obj, 0) }}
+        {% if obj.thread %}
+            {% for in_reply_to in obj.thread %}
+                {{ tweet(in_reply_to, loop.index) }}
+            {% endfor %}
+        {% endif %}
     {% else %}
         <p class="noresults">No search results</p>
     {% endfor %}
