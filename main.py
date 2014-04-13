@@ -186,12 +186,13 @@ def thread(api, obj, num):
         try:
             item = api.get_status(obj.in_reply_to_status_id)
         except tweepy.TweepError as e:
-            logging.error(e.reason)
+            # logging.error(e.reason)
             pass
         else:
-            yield item.__dict__
+            yield item
             obj = item
-        n += 1
+        finally:
+            n += 1
 
 
 class Index(BaseHandler):
@@ -218,9 +219,8 @@ class Index(BaseHandler):
         results = api.search(q=query, geocode=city['geocode'], count=20)  # <class 'tweepy.models.ResultSet'>
         for obj in results:
             item = obj.__dict__
-            item["thread"] = list(thread(api, obj, 2))
-            # if obj.in_reply_to_user_id:
-                # api.get_user(obj.in_reply_to_user_id) Sorry, you are not authorized to see this status
+            item["thread"] = list(thread(api, obj, 4))
+            # api.get_user(obj.in_reply_to_user_id) Sorry, you are not authorized to see this status
             collection.append(item)
 
         # first = vars(collection[0])
