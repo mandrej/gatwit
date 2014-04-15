@@ -10,32 +10,33 @@
     <link rel="stylesheet" href="/static/css/base.css">
 </head>
 <body>
-    <nav id="main-nav">
-        <form action="/" method="post">
-            <label for="place">Type-in place</label>
-            <input type="text" name="place" id="place" value="{{ city.name }}"
-                   placeholder="<Enter>" onfocus="this.value=''">
-        </form>
-        <p>or leave blank to get place from request.</p>
-        <form action="/" method="get">
-            <label for="search">Search within {{ radius }}</label>
-            <input type="text" name="q" id="search" value="{{ query }}"
-                   placeholder="<Enter>" onfocus="this.value=''">
-        </form>
-        {% for flash in flashes %}<p class="{{ flash.1 }}">{{ flash.0 }}</p>{% endfor %}
-        <footer>
-            <a class="twit" href="https://twitter.com/@mandrej" target="_blank">@mandrej</a>, 2013-{{ year() }}
-        </footer>
-    </nav>
-    <header>
-        <a href="#main-nav" class="fa fa-bars pull-left open"></a>
-        <a href="#" class="fa fa-bars pull-left close"></a>
-        {% block paginator %}{% endblock %}
-        <h1><a href="/">LAJNA</a></h1>
-    </header>
-    <article id="main">
-        {% block content %}{% endblock %}
-    </article>
+    <div class="wrapper">
+        <nav id="main-nav">
+            <form action="/" method="post">
+                <input type="text" name="place" id="place" value="{{ city.name }}"
+                       placeholder="<Enter>" onfocus="this.value=''">
+                <label for="place">Type-in place, or leave blank to get place from request.</label>
+            </form>
+            <form action="/" method="get">
+                <input type="text" name="q" id="search" value="{{ query }}"
+                       placeholder="<Enter>" onfocus="this.value=''">
+                <label for="search">Search within {{ radius }}.</label>
+            </form>
+            {% for flash in flashes %}<p class="{{ flash.1 }}">{{ flash.0 }}</p>{% endfor %}
+            <footer>
+                <a class="twit" href="https://twitter.com/@mandrej" target="_blank">@mandrej</a>, 2013-{{ year() }}
+            </footer>
+        </nav>
+        <header>
+            <a href="#main-nav" class="fa fa-bars pull-left open"></a>
+            <a href="#" class="fa fa-bars pull-left close"></a>
+            {% block paginator %}{% endblock %}
+            <h1><a href="/">LAJNA</a></h1>
+        </header>
+        <article id="main">
+            {% block content %}{% endblock %}
+        </article>
+    </div>
     <script>
         (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
             (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
