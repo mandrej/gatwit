@@ -36,7 +36,7 @@
 {% endmacro %}
 
 {% block content %}
-    {% for obj in collection %}
+    {% for obj in tweets %}
         {{ tweet(obj, 0) }}
         {% if obj.thread %}
             {% for in_reply_to in obj.thread %}

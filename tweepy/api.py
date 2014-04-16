@@ -15,42 +15,29 @@ class API(object):
     """Twitter API"""
 
     def __init__(self, auth_handler=None,
-            host='api.twitter.com', search_host='api.twitter.com',
-             cache=None, secure=True, api_root='/1.1', search_root='/1.1',
-            retry_count=0, retry_delay=0, retry_errors=None,
-            parser=None, monitor_rate_limit=False, wait_on_rate_limit=False):
-        self.auth = auth_handler if auth_handler is None or not hasattr(auth_handler, '__iter__') else auth_handler[0]
-        self.auths = None if auth_handler is None else list(auth_handler) if hasattr(auth_handler, '__iter__') else [auth_handler]
-        self._auth_idx = None if auth_handler is None else 0
+            host='api.twitter.com', search_host='search.twitter.com',
+             cache=None, secure=True, api_root='/1.1', search_root='',
+            retry_count=0, retry_delay=0, retry_errors=None, timeout=60,
+            parser=None, compression=False):
+        self.auth = auth_handler
         self.host = host
         self.search_host = search_host
         self.api_root = api_root
         self.search_root = search_root
         self.cache = cache
         self.secure = secure
+        self.compression = compression
         self.retry_count = retry_count
         self.retry_delay = retry_delay
         self.retry_errors = retry_errors
+        self.timeout = timeout
         self.parser = parser or ModelParser()
-        self.monitor_rate_limit = monitor_rate_limit
-        self.wait_on_rate_limit = wait_on_rate_limit
-
-    @property
-    def auth_idx(self):
-        return self._auth_idx
-
-    @auth_idx.setter
-    def auth_idx(self, value):
-        if value >= len(self.auths):
-            raise IndexError('Index out of bounds')
-        self._auth_idx = value
-        self.auth = self.auths[value]
 
     """ statuses/home_timeline """
     home_timeline = bind_api(
         path = '/statuses/home_timeline.json',
         payload_type = 'status', payload_list = True,
-        allowed_param = ['since_id', 'max_id', 'count', 'page'],
+        allowed_param = ['since_id', 'max_id', 'count'],
         require_auth = True
     )
 
@@ -59,7 +46,7 @@ class API(object):
         path = '/statuses/user_timeline.json',
         payload_type = 'status', payload_list = True,
         allowed_param = ['id', 'user_id', 'screen_name', 'since_id',
-                          'max_id', 'count', 'page', 'include_rts']
+                          'max_id', 'count', 'include_rts']
     )
 
     """ statuses/mentions """
@@ -67,14 +54,6 @@ class API(object):
         path = '/statuses/mentions_timeline.json',
         payload_type = 'status', payload_list = True,
         allowed_param = ['since_id', 'max_id', 'count'],
-        require_auth = True
-    )
-
-    """/statuses/:id/retweeted_by.format"""
-    retweeted_by = bind_api(
-        path = '/statuses/{id}/retweeted_by.json',
-        payload_type = 'status', payload_list = True,
-        allowed_param = ['id', 'count', 'page'],
         require_auth = True
     )
 
@@ -86,19 +65,11 @@ class API(object):
         require_auth = False
     )
 
-    """/statuses/:id/retweeted_by/ids.format"""
-    retweeted_by_ids = bind_api(
-        path = '/statuses/{id}/retweeted_by/ids.json',
-        payload_type = 'ids',
-        allowed_param = ['id', 'count', 'page'],
-        require_auth = True
-    )
-
     """ statuses/retweets_of_me """
     retweets_of_me = bind_api(
         path = '/statuses/retweets_of_me.json',
         payload_type = 'status', payload_list = True,
-        allowed_param = ['since_id', 'max_id', 'count', 'page'],
+        allowed_param = ['since_id', 'max_id', 'count'],
         require_auth = True
     )
 
@@ -117,6 +88,22 @@ class API(object):
         allowed_param = ['status', 'in_reply_to_status_id', 'lat', 'long', 'source', 'place_id'],
         require_auth = True
     )
+
+    """ statuses/update_with_media """
+    def update_with_media(self, filename, *args, **kwargs):
+        headers, post_data = API._pack_image(filename, 3072, form_field='media[]')
+        kwargs.update({'headers': headers, 'post_data': post_data})
+
+        return bind_api(
+            path='/statuses/update_with_media.json',
+            method = 'POST',
+            payload_type='status',
+            allowed_param = [
+                'status', 'possibly_sensitive', 'in_reply_to_status_id', 'lat', 'long',
+                'place_id', 'display_coordinates'
+            ],
+            require_auth=True
+        )(self, *args, **kwargs)
 
     """ statuses/destroy """
     destroy_status = bind_api(
@@ -142,6 +129,12 @@ class API(object):
         payload_type = 'status', payload_list = True,
         allowed_param = ['id', 'count'],
         require_auth = True
+    )
+
+    retweeters = bind_api(
+        path = '/statuses/retweeters/ids.json',
+        payload_type = 'ids',
+        allowed_param = ['id', 'cursor', 'stringify_ids']
     )
 
     """ users/show """
@@ -177,7 +170,7 @@ class API(object):
         path = '/users/search.json',
         payload_type = 'user', payload_list = True,
         require_auth = True,
-        allowed_param = ['q', 'per_page', 'page']
+        allowed_param = ['q', 'count', 'page']
     )
 
     """ users/suggestions/:slug """
@@ -208,7 +201,7 @@ class API(object):
     direct_messages = bind_api(
         path = '/direct_messages.json',
         payload_type = 'direct_message', payload_list = True,
-        allowed_param = ['since_id', 'max_id', 'count', 'page'],
+        allowed_param = ['since_id', 'max_id', 'count'],
         require_auth = True
     )
 
@@ -264,13 +257,6 @@ class API(object):
         require_auth = True
     )
 
-    """ friendships/exists """
-    exists_friendship = bind_api(
-        path = '/friendships/exists.json',
-        payload_type = 'json',
-        allowed_param = ['user_a', 'user_b']
-    )
-
     """ friendships/show """
     show_friendship = bind_api(
         path = '/friendships/show.json',
@@ -279,10 +265,9 @@ class API(object):
                           'target_id', 'target_screen_name']
     )
 
-
     """ Perform bulk look up of friendships from user ID or screenname """
     def lookup_friendships(self, user_ids=None, screen_names=None):
-	    return self._lookup_friendships(list_to_csv(user_ids), list_to_csv(screen_names))
+        return self._lookup_friendships(list_to_csv(user_ids), list_to_csv(screen_names))
 
     _lookup_friendships = bind_api(
         path = '/friendships/lookup.json',
@@ -303,7 +288,7 @@ class API(object):
     friends = bind_api(
         path = '/friends/list.json',
         payload_type = 'user', payload_list = True,
-        allowed_param = ['id', 'user_id', 'screen_name', 'page', 'cursor']
+        allowed_param = ['id', 'user_id', 'screen_name', 'cursor']
     )
 
     """ friendships/incoming """
@@ -331,7 +316,8 @@ class API(object):
     followers = bind_api(
         path = '/followers/list.json',
         payload_type = 'user', payload_list = True,
-        allowed_param = ['id', 'user_id', 'screen_name', 'page', 'cursor']
+        allowed_param = ['id', 'user_id', 'screen_name', 'cursor', 'count',
+            'skip_status', 'include_user_entities']
     )
 
     """ account/verify_credentials """
@@ -343,7 +329,7 @@ class API(object):
                 require_auth = True,
                 allowed_param = ['include_entities', 'skip_status'],
             )(self, **kargs)
-        except TweepError, e:
+        except TweepError as e:
             if e.response and e.response.status == 401:
                 return False
             raise
@@ -397,6 +383,17 @@ class API(object):
             require_auth = True
         )(self, post_data=post_data, headers=headers)
 
+    """ account/update_profile_banner """
+    def update_profile_banner(self, filename, *args, **kargs):
+        headers, post_data = API._pack_image(filename, 700, form_field="banner")
+        bind_api(
+            path = '/account/update_profile_banner.json',
+            method = 'POST',
+            allowed_param = ['width', 'height', 'offset_left', 'offset_right'],
+            require_auth = True
+        )(self, post_data=post_data, headers=headers)
+
+
     """ account/update_profile """
     update_profile = bind_api(
         path = '/account/update_profile.json',
@@ -410,7 +407,7 @@ class API(object):
     favorites = bind_api(
         path = '/favorites/list.json',
         payload_type = 'status', payload_list = True,
-        allowed_param = ['screen_name', 'user_id', 'max_id', 'count', 'since_id']
+        allowed_param = ['screen_name', 'user_id', 'max_id', 'count', 'since_id', 'max_id']
     )
 
     """ favorites/create """
@@ -453,7 +450,7 @@ class API(object):
     blocks = bind_api(
         path = '/blocks/list.json',
         payload_type = 'user', payload_list = True,
-        allowed_param = ['page'],
+        allowed_param = ['cursor'],
         require_auth = True
     )
 
@@ -506,16 +503,6 @@ class API(object):
         require_auth = True
     )
 
-    """ help/test """
-    def test(self):
-        try:
-            bind_api(
-                path = '/help/test.json',
-            )(self)
-        except TweepError:
-            return False
-        return True
-
     create_list = bind_api(
         path = '/lists/create.json',
         method = 'POST',
@@ -564,7 +551,7 @@ class API(object):
     list_timeline = bind_api(
         path = '/lists/statuses.json',
         payload_type = 'status', payload_list = True,
-        allowed_param = ['owner_screen_name', 'slug', 'owner_id', 'list_id', 'since_id', 'max_id', 'count']
+        allowed_param = ['owner_screen_name', 'slug', 'owner_id', 'list_id', 'since_id', 'max_id', 'count', 'include_rts']
     )
 
     get_list = bind_api(
@@ -649,10 +636,9 @@ class API(object):
 
     """ search """
     search = bind_api(
-        search_api = True,
         path = '/search/tweets.json',
-        payload_type = 'search_result', payload_list = True,
-        allowed_param = ['q', 'geocode', 'lang', 'locale', 'result_type', 'count', 'until', 'since_id', 'max_id', 'include_entities', 'rpp', 'page', 'show_user', 'since']
+        payload_type = 'search_results',
+        allowed_param = ['q', 'lang', 'locale', 'since_id', 'geocode', 'max_id', 'since', 'until', 'result_type', 'count', 'include_entities', 'from', 'to', 'source']
     )
 
     """ trends/daily """
@@ -697,9 +683,23 @@ class API(object):
         allowed_param = ['lat', 'long', 'name', 'contained_within']
     )
 
+    """ help/languages.json """
+    supported_languages = bind_api(
+        path = '/help/languages.json',
+        payload_type = 'json',
+        require_auth = True
+    )
+
+    """ help/configuration """
+    configuration = bind_api(
+        path = '/help/configuration.json',
+        payload_type = 'json',
+        require_auth = True
+    )
+
     """ Internal use only """
     @staticmethod
-    def _pack_image(filename, max_size):
+    def _pack_image(filename, max_size, form_field="image"):
         """Pack image from file into multipart-formdata post body"""
         # image must be less than 700kb in size
         try:
@@ -721,7 +721,7 @@ class API(object):
         BOUNDARY = 'Tw3ePy'
         body = []
         body.append('--' + BOUNDARY)
-        body.append('Content-Disposition: form-data; name="image"; filename="%s"' % filename)
+        body.append('Content-Disposition: form-data; name="%s"; filename="%s"' % (form_field, filename))
         body.append('Content-Type: %s' % file_type)
         body.append('')
         body.append(fp.read())

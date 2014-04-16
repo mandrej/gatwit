@@ -7,20 +7,18 @@ import traceback
 import re
 import json
 import webapp2
-import tweepy
 import urllib
 import urllib2
 import logging
 import pygeoip
-import collections
 import base64
 import datetime
+import tweepy
 from tweepy.cache import MemoryCache
 from webapp2 import WSGIApplication
 from webapp2_extras import jinja2, sessions
 from jinja2.utils import Markup
 from geopy import geocoders
-from geopy.geocoders.googlev3 import GQueryError
 
 CONSUMER_KEY = 'uvkMU4MFVn2N3lgizdFRfQ'
 CONSUMER_SECRET = 'HGsVbzsYjCDhI0Y6u2vurlvEWrFqBxZkkQAu2ASnQ'
@@ -101,9 +99,7 @@ def geo_location(arg):
     """
     try:
         results = GV3.geocode(arg, sensor=False)
-    except GQueryError as e:
-        return None, e.message
-    except ValueError as e:
+    except Exception as e:
         return None, e.message
     else:
         location, point = results
@@ -117,6 +113,8 @@ class LazyEncoder(json.JSONEncoder):
         if isinstance(obj, tweepy.API):
             return '%s' % obj
         if isinstance(obj, tweepy.models.User):
+            return '%s' % obj
+        if isinstance(obj, tweepy.models.Status):
             return '%s' % obj
         return obj
 
@@ -185,7 +183,7 @@ def thread(api, obj, num):
     while obj.in_reply_to_status_id and num > n:
         try:
             item = api.get_status(obj.in_reply_to_status_id)
-        except tweepy.TweepError as e:
+        except Exception as e:
             # logging.error(e.reason)
             pass
         else:
@@ -205,28 +203,25 @@ class Index(BaseHandler):
             auth = AppAuthHandler()
             CACHE.store('auth', auth)
 
-        # http://www.nirg.net/blog/2013/04/using-tweepy/
         api = tweepy.API(
-            [auth],
+            auth,
             retry_count=3,
             retry_delay=5,
-            retry_errors=set([401, 404, 500, 503]),
-            monitor_rate_limit=True,
-            wait_on_rate_limit=True
+            retry_errors=set([401, 404, 500, 503])
         )
 
-        collection = []
-        results = api.search(q=query, geocode=city['geocode'], count=20)  # <class 'tweepy.models.ResultSet'>
+        tweets = []
+        results = api.search(q=query, geocode=city['geocode'], count=20)
         for obj in results:
             item = obj.__dict__
             item["thread"] = list(thread(api, obj, 4))
             # api.get_user(obj.in_reply_to_user_id) Sorry, you are not authorized to see this status
-            collection.append(item)
+            tweets.append(item)
 
-        # first = vars(collection[0])
+        # first = results[0].__dict__
         # logging.error(json.dumps(first, cls=LazyEncoder))
         self.render_template('index.html', {
-            'collection': collection,
+            'tweets': tweets,
             'refresh_url': results.refresh_url,
             'query': query,
             'radius': RADIUS,

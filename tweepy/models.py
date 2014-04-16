@@ -2,12 +2,35 @@
 # Copyright 2009-2010 Joshua Roesslein
 # See LICENSE for details.
 
+from tweepy.error import TweepError
 from tweepy.utils import parse_datetime, parse_html_value, parse_a_href
 
 
 class ResultSet(list):
     """A list like object that holds results from a Twitter API query."""
+    def __init__(self, max_id=None, since_id=None):
+        super(ResultSet, self).__init__()
+        self._max_id = max_id
+        self._since_id = since_id
 
+    @property
+    def max_id(self):
+        if self._max_id:
+            return self._max_id
+        ids = self.ids()
+        # Max_id is always set to the *smallest* id, minus one, in the set
+        return (min(ids) - 1) if ids else None
+
+    @property
+    def since_id(self):
+        if self._since_id:
+            return self._since_id
+        ids = self.ids()
+        # Since_id is always set to the *greatest* id in the set
+        return max(ids) if ids else None 
+
+    def ids(self):
+        return [item.id for item in self if hasattr(item, 'id')]
 
 class Model(object):
 
@@ -37,15 +60,20 @@ class Model(object):
                 results.append(cls.parse(api, obj))
         return results
 
+    def __repr__(self):
+        state = ['%s=%s' % (k, repr(v)) for (k,v) in vars(self).items()]
+        return '%s(%s)' % (self.__class__.__name__, ', '.join(state))
+
 
 class Status(Model):
 
     @classmethod
     def parse(cls, api, json):
         status = cls(api)
+        setattr(status, '_json', json)
         for k, v in json.items():
             if k == 'user':
-                user_model = getattr(api.parser.model_factory, 'user')
+                user_model = getattr(api.parser.model_factory, 'user') if api else User
                 user = user_model.parse(api, v)
                 setattr(status, 'author', user)
                 setattr(status, 'user', user)  # DEPRECIATED
@@ -87,6 +115,7 @@ class User(Model):
     @classmethod
     def parse(cls, api, json):
         user = cls(api)
+        setattr(user, '_json', json)
         for k, v in json.items():
             if k == 'created_at':
                 setattr(user, k, parse_datetime(v))
@@ -138,7 +167,7 @@ class User(Model):
         return self._api.lists_subscriptions(user=self.screen_name, *args, **kargs)
 
     def lists(self, *args, **kargs):
-        return self._api.lists(user=self.screen_name, *args, **kargs)
+        return self._api.lists_all(user=self.screen_name, *args, **kargs)
 
     def followers_ids(self, *args, **kargs):
         return self._api.followers_ids(user_id=self.id, *args, **kargs)
@@ -207,13 +236,20 @@ class SavedSearch(Model):
         return self._api.destroy_saved_search(self.id)
 
 
-class SearchResult(Status):
+class SearchResults(ResultSet):
 
     @classmethod
-    def parse_list(cls, api, json_list, result_set=None):        
-        results = super(SearchResult, cls).parse_list(api, json_list['statuses'])
-        for k,v in json_list['search_metadata'].iteritems():
-            setattr(results, k, v)
+    def parse(cls, api, json):
+        metadata = json['search_metadata']
+        results = SearchResults()
+        results.refresh_url = metadata.get('refresh_url')
+        results.completed_in = metadata.get('completed_in')
+        results.query = metadata.get('query')
+        results.count = metadata.get('count')
+        results.next_results = metadata.get('next_results')
+
+        for status in json['statuses']:
+            results.append(Status.parse(api, status))
         return results
 
 
@@ -292,7 +328,7 @@ class Relationship(Model):
         result = cls(api)
         for k,v in json.items():
             if k == 'connections':
-            	setattr(result, 'is_following', 'following' in v)
+                setattr(result, 'is_following', 'following' in v)
                 setattr(result, 'is_followed_by', 'followed_by' in v)
             else:
                 setattr(result, k, v)
@@ -391,7 +427,7 @@ class ModelFactory(object):
     direct_message = DirectMessage
     friendship = Friendship
     saved_search = SavedSearch
-    search_result = SearchResult
+    search_results = SearchResults
     category = Category
     list = List
     relation = Relation

@@ -11,10 +11,12 @@ class Cursor(object):
         if hasattr(method, 'pagination_mode'):
             if method.pagination_mode == 'cursor':
                 self.iterator = CursorIterator(method, args, kargs)
-            elif method.pagination_mode == 'max_id':
-                self.iterator = MaxIdIterator(method, args, kargs)
-            else:
+            elif method.pagination_mode == 'id':
+                self.iterator = IdIterator(method, args, kargs)
+            elif method.pagination_mode == 'page':
                 self.iterator = PageIterator(method, args, kargs)
+            else:
+                raise TweepError('Invalid pagination mode.')
         else:
             raise TweepError('This method does not perform pagination')
 
@@ -51,12 +53,13 @@ class CursorIterator(BaseIterator):
 
     def __init__(self, method, args, kargs):
         BaseIterator.__init__(self, method, args, kargs)
-        self.next_cursor = -1
-        self.prev_cursor = 0
-        self.count = 0
+        start_cursor = kargs.pop('cursor', None)
+        self.next_cursor = start_cursor or -1
+        self.prev_cursor = start_cursor or 0
+        self.num_tweets = 0
 
     def next(self):
-        if self.next_cursor == 0 or (self.limit and self.count == self.limit):
+        if self.next_cursor == 0 or (self.limit and self.num_tweets == self.limit):
             raise StopIteration
         data, cursors = self.method(
                 cursor=self.next_cursor, *self.args, **self.kargs
@@ -64,7 +67,7 @@ class CursorIterator(BaseIterator):
         self.prev_cursor, self.next_cursor = cursors
         if len(data) == 0:
             raise StopIteration
-        self.count += 1
+        self.num_tweets += 1
         return data
 
     def prev(self):
@@ -73,7 +76,54 @@ class CursorIterator(BaseIterator):
         data, self.next_cursor, self.prev_cursor = self.method(
                 cursor=self.prev_cursor, *self.args, **self.kargs
         )
-        self.count -= 1
+        self.num_tweets -= 1
+        return data
+
+class IdIterator(BaseIterator):
+
+    def __init__(self, method, args, kargs):
+        BaseIterator.__init__(self, method, args, kargs)
+        self.max_id = kargs.get('max_id')
+        self.num_tweets = 0
+        self.results = []
+        self.index = 0
+
+    def next(self):
+        """Fetch a set of items with IDs less than current set."""
+        if self.limit and self.limit == self.num_tweets:
+            raise StopIteration
+
+        if self.index >= len(self.results) - 1:
+            data = self.method(max_id=self.max_id, *self.args, **self.kargs)
+            if len(self.results) != 0:
+                self.index += 1
+            self.results.append(data)
+        else:
+            self.index += 1
+            data = self.results[self.index]
+            
+        if len(data) == 0:
+            raise StopIteration
+        # TODO: Make this not dependant on the parser making max_id and
+        # since_id available
+        self.max_id = data.max_id 
+        self.num_tweets += 1
+        return data
+
+    def prev(self):
+        """Fetch a set of items with IDs greater than current set."""
+        if self.limit and self.limit == self.num_tweets:
+            raise StopIteration
+
+        self.index -= 1
+        if self.index < 0:
+            # There's no way to fetch a set of tweets directly 'above' the
+            # current set
+            raise StopIteration
+
+        data = self.results[self.index]
+        self.max_id = data.max_id
+        self.num_tweets += 1
         return data
 
 class PageIterator(BaseIterator):
@@ -83,12 +133,13 @@ class PageIterator(BaseIterator):
         self.current_page = 0
 
     def next(self):
-        self.current_page += 1
         if self.limit > 0 and self.current_page > self.limit:
             raise StopIteration
+
         items = self.method(page=self.current_page, *self.args, **self.kargs)
-        if len(items) == 0: 
+        if len(items) == 0:
             raise StopIteration
+        self.current_page += 1
         return items
 
     def prev(self):
@@ -104,17 +155,17 @@ class ItemIterator(BaseIterator):
         self.limit = 0
         self.current_page = None
         self.page_index = -1
-        self.count = 0
+        self.num_tweets = 0
 
     def next(self):
-        if self.limit > 0 and self.count == self.limit:
+        if self.limit > 0 and self.num_tweets == self.limit:
             raise StopIteration
         if self.current_page is None or self.page_index == len(self.current_page) - 1:
             # Reached end of current page, get the next page...
             self.current_page = self.page_iterator.next()
             self.page_index = -1
         self.page_index += 1
-        self.count += 1
+        self.num_tweets += 1
         return self.current_page[self.page_index]
 
     def prev(self):
@@ -127,32 +178,6 @@ class ItemIterator(BaseIterator):
             if self.page_index == 0:
                 raise TweepError('No more items')
         self.page_index -= 1
-        self.count -= 1
+        self.num_tweets -= 1
         return self.current_page[self.page_index]
 
-class MaxIdIterator(BaseIterator):
-    """ 
-    Iterate over timelines properly using max_id.
-    """
-
-    def __init__(self, method, args, kargs):
-        kargs['max_id'] = kargs.get('max_id', None)
-        if 'page' in kargs:
-            kargs['page'] = None
-        
-        BaseIterator.__init__(self, method, args, kargs)
-        self._page_count = 0
-        
-    def next(self):
-        if self.limit > 0 and self._page_count >= self.limit:
-            raise StopIteration
-        items = self.method(*self.args, **self.kargs)
-        if len(items) < 1: 
-            raise StopIteration
-        
-        self.kargs['max_id'] = min([t['id'] if not hasattr(t, 'id') else t.id for t in items])-1
-        self._page_count += 1
-        return items
-    
-    def prev(self):
-        raise NotImplemented()
