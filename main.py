@@ -14,6 +14,7 @@ import pygeoip
 import base64
 import datetime
 import tweepy
+from tweepy.cursor import Cursor
 from tweepy.cache import MemoryCache
 from webapp2 import WSGIApplication
 from webapp2_extras import jinja2, sessions
@@ -196,6 +197,7 @@ def thread(api, obj, num):
 class Index(BaseHandler):
     def get(self):
         query = self.request.get('q', '')
+        last_id = self.request.get('since_id', 0)
         city = self.session.get('city', DEFAULT)
 
         auth = CACHE.get('auth')
@@ -211,8 +213,11 @@ class Index(BaseHandler):
         )
 
         tweets = []
-        results = api.search(q=query, geocode=city['geocode'], count=20)
+        results = Cursor(api.search, q=query, geocode=city['geocode'], since_id=last_id).items(limit=20)
+        # logging.error(dir(results))
+        # logging.error(results.__dict__)
         for obj in results:
+            last_id = obj.id
             item = obj.__dict__
             item["thread"] = list(thread(api, obj, 4))
             # api.get_user(obj.in_reply_to_user_id) Sorry, you are not authorized to see this status
@@ -222,8 +227,8 @@ class Index(BaseHandler):
         # logging.error(json.dumps(first, cls=LazyEncoder))
         self.render_template('index.html', {
             'tweets': tweets,
-            'refresh_url': results.refresh_url,
             'query': query,
+            'since_id': last_id,
             'radius': RADIUS,
             'flashes': self.session.get_flashes(),
             'blank': 'data:image/gif;base64,%s' % BLANK

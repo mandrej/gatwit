@@ -1,9 +1,5 @@
 {% extends "base.html" %}
 
-{% block paginator %}
-    <a href="{{ refresh_url }}" class="fa fa-refresh pull-right"></a>
-{% endblock %}
-
 {% macro tweet(obj, level=0) %}
     <div id="{{ obj.id }}" class="tweet" style="margin-left: {{ '%spx' % (32 * level) }}">
         <a href="https://twitter.com/{{ obj.user.screen_name }}" target="_blank">

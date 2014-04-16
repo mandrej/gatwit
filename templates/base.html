@@ -15,7 +15,7 @@
             <form action="/" method="post">
                 <input type="text" name="place" id="place" value="{{ city.name }}"
                        placeholder="<Enter>" onfocus="this.value=''">
-                <label for="place">Type-in place, or leave blank to get place from request.</label>
+                <label for="place">Type-in place, or leave blank to get place from request IP address.</label>
             </form>
             <form action="/" method="get">
                 <input type="text" name="q" id="search" value="{{ query }}"
@@ -30,7 +30,7 @@
         <header>
             <a href="#main-nav" class="fa fa-bars pull-left open"></a>
             <a href="#" class="fa fa-bars pull-left close"></a>
-            {% block paginator %}{% endblock %}
+            <a href="?q={{ query }}&since_id={{ since_id }}" class="fa fa-refresh pull-right"></a>
             <h1><a href="/">LAJNA</a></h1>
         </header>
         <article id="main">
