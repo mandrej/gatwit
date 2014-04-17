@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% macro tweet(obj, level=0) %}
+{% macro render_tweet(obj, level=0) %}
     <div id="{{ obj.id }}" class="tweet" style="margin-left: {{ '%spx' % (32 * level) }}">
         <a href="https://twitter.com/{{ obj.user.screen_name }}" target="_blank">
             <img src="{{ blank }}" style="background: url({{ obj.user.profile_image_url }})">
@@ -26,19 +26,20 @@
                     {{ obj.user.location }}
                 {% endif %}
             </small>
-{#            <br>{% for k,v in obj.items() %}{{ k }}: {{ v|pprint }}, {% endfor %}#}
         </p>
     </div>
+    {% if obj.in_reply_to_status_id and level < 4 %}
+        {% set level = level + 1 %}
+        {% set thread = obj.in_reply_to_status_id|get_status %}
+        {% if thread %}
+            {{ render_tweet(thread, level) }}
+        {% endif %}
+    {% endif %}
 {% endmacro %}
 
 {% block content %}
     {% for obj in tweets %}
-        {{ tweet(obj, 0) }}
-        {% if obj.thread %}
-            {% for in_reply_to in obj.thread %}
-                {{ tweet(in_reply_to, loop.index) }}
-            {% endfor %}
-        {% endif %}
+        {{ render_tweet(obj) }}
     {% else %}
         <p class="noresults">No search results</p>
     {% endfor %}

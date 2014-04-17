@@ -5,7 +5,6 @@ import os
 import sys
 import traceback
 import re
-import json
 import webapp2
 import logging
 import pygeoip
@@ -101,17 +100,18 @@ def geo_location(arg):
         return location, ','.join(map(str, point))
 
 
-class LazyEncoder(json.JSONEncoder):
-    def default(self, obj):
-        if isinstance(obj, datetime.datetime):
-            return obj.isoformat()
-        if isinstance(obj, tweepy.API):
-            return '%s' % obj
-        if isinstance(obj, tweepy.models.User):
-            return '%s' % obj
-        if isinstance(obj, tweepy.models.Status):
-            return '%s' % obj
-        return obj
+def get_status(id):
+    auth = CACHE.get('auth')
+    if auth is None:
+        auth = tweepy.AppAuthHandler(CONSUMER_KEY, CONSUMER_SECRET)
+        CACHE.store('auth', auth)
+
+    api = tweepy.API(auth, retry_count=3, retry_delay=5)
+    try:
+        status = api.get_status(id)
+    except tweepy.error.TweepError:
+        return None
+    return status
 
 
 class BaseHandler(webapp2.RequestHandler):
@@ -154,21 +154,6 @@ class BaseHandler(webapp2.RequestHandler):
         self.response.write(self.jinja2.render_template(filename, **kwargs))
 
 
-def thread(api, obj, num):
-    n = 0
-    while obj.in_reply_to_status_id and num > n:
-        try:
-            item = api.get_status(obj.in_reply_to_status_id)
-        except Exception as e:
-            # logging.error(e.reason)
-            pass
-        else:
-            yield item
-            obj = item
-        finally:
-            n += 1
-
-
 class Index(BaseHandler):
     def get(self):
         query = self.request.get('q', '')
@@ -181,22 +166,12 @@ class Index(BaseHandler):
             CACHE.store('auth', auth)
 
         api = tweepy.API(auth, retry_count=3, retry_delay=5)
-
-        tweets = []
         results = api.search(q=query, geocode=city['geocode'], max_id=max_id, count=20)
-        for obj in results:
-            max_id = obj.id
-            item = obj.__dict__
-            item["thread"] = list(thread(api, obj, 3))
-            # api.get_user(obj.in_reply_to_user_id) Sorry, you are not authorized to see this status
-            tweets.append(item)
 
-        # first = results[0].__dict__
-        # logging.error(json.dumps(first, cls=LazyEncoder))
         self.render_template('index.html', {
-            'tweets': tweets,
+            'tweets': results,
             'query': query,
-            'max_id': max_id,
+            'max_id': results[-1].id,
             'radius': RADIUS,
             'flashes': self.session.get_flashes(),
             'blank': 'data:image/gif;base64,%s' % BLANK
@@ -228,7 +203,8 @@ CONFIG = {
         'filters': {
             'twitterize': twitterize,
             'timesince': timesince_jinja,
-            'geo_address': geo_address
+            'geo_address': geo_address,
+            'get_status': get_status
         },
         'environment_args': {
             'autoescape': True,
