@@ -5,6 +5,7 @@ import os
 import sys
 import traceback
 import re
+import urllib
 import webapp2
 import logging
 import pygeoip
@@ -109,7 +110,7 @@ def get_status(id):
     api = tweepy.API(auth, retry_count=3, retry_delay=5)
     try:
         status = api.get_status(id)
-    except tweepy.error.TweepError:
+    except tweepy.TweepError:
         return None
     return status
 
@@ -136,7 +137,7 @@ class BaseHandler(webapp2.RequestHandler):
         if isinstance(exception, webapp2.HTTPException):
             code = exception.code
             data['error'] = exception
-        elif isinstance(exception, tweepy.error.TweepError):
+        elif isinstance(exception, tweepy.TweepError):
             data['lines'] = ''.join(traceback.format_exception(*sys.exc_info()))
             try:
                 data['error'] = '{code}: {message}'.format(**exception[0][0])
@@ -157,7 +158,7 @@ class BaseHandler(webapp2.RequestHandler):
 class Index(BaseHandler):
     def get(self):
         query = self.request.get('q', '')
-        max_id = self.request.get('max_id', 0)
+        max_id = self.request.get('max_id', None)
         city = self.session.get('city', DEFAULT)
 
         auth = CACHE.get('auth')
@@ -168,10 +169,16 @@ class Index(BaseHandler):
         api = tweepy.API(auth, retry_count=3, retry_delay=5)
         results = api.search(q=query, geocode=city['geocode'], max_id=max_id, count=20)
 
+        paremeters = {}
+        if query != '':
+            paremeters['query'] = query
+        if results.max_id:
+            paremeters['max_id'] = results.max_id
+
         self.render_template('index.html', {
             'tweets': results,
             'query': query,
-            'max_id': results[-1].id,
+            'paremeters': urllib.urlencode(paremeters),
             'radius': RADIUS,
             'flashes': self.session.get_flashes(),
             'blank': 'data:image/gif;base64,%s' % BLANK

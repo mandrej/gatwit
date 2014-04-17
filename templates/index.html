@@ -10,21 +10,14 @@
                 @{{ obj.user.screen_name|default }}
             </a>
             <small>
-            {{ obj.user.friends_count }} friends, {{ obj.user.followers_count }} followers,
-            {{ obj.retweet_count }} retweets, {{ obj.favorite_count }} favorites
+                {{ obj.user.friends_count }} friends, {{ obj.user.followers_count }} followers,
+                {{ obj.retweet_count }} retweets, {{ obj.favorite_count }} favorites
             </small>
             <br>
             <span>{{ obj.text|twitterize|urlize }}</span>
             <br>
             <small>
-                {{ obj.created_at|timesince }}, {{ obj.source }},
-                {% if obj.coordinates %}
-                    <i class="fa fa-map-marker">
-                        {{ obj.coordinates|geo_address }}
-                    </i>
-                {% else %}
-                    {{ obj.user.location }}
-                {% endif %}
+                {{ obj.created_at|timesince }}, {{ obj.source }}, {{ obj.user.location }}
             </small>
         </p>
     </div>
