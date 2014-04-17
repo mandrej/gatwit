@@ -7,15 +7,10 @@ import traceback
 import re
 import json
 import webapp2
-import urllib
-import urllib2
 import logging
 import pygeoip
-import base64
 import datetime
 import tweepy
-from tweepy.cursor import Cursor
-from tweepy.cache import MemoryCache
 from webapp2 import WSGIApplication
 from webapp2_extras import jinja2, sessions
 from jinja2.utils import Markup
@@ -23,11 +18,10 @@ from geopy import geocoders
 
 CONSUMER_KEY = 'uvkMU4MFVn2N3lgizdFRfQ'
 CONSUMER_SECRET = 'HGsVbzsYjCDhI0Y6u2vurlvEWrFqBxZkkQAu2ASnQ'
-TOKEN_URL = 'https://api.twitter.com/oauth2/token'
 
 GV3 = geocoders.GoogleV3()
 GIP = pygeoip.GeoIP('pygeoip/GeoLiteCity.dat')
-CACHE = MemoryCache(600)
+CACHE = tweepy.MemoryCache(600)
 
 DEVEL = os.environ.get('SERVER_SOFTWARE', '').startswith('Dev')
 RADIUS = '10km'
@@ -120,25 +114,6 @@ class LazyEncoder(json.JSONEncoder):
         return obj
 
 
-class AppAuthHandler(tweepy.auth.AuthHandler):
-    # http://shogo82148.github.io/blog/2013/05/09/application-only-authentication-with-tweepy/
-    def __init__(self):
-        token_credential = urllib.quote(CONSUMER_KEY) + ':' + urllib.quote(CONSUMER_SECRET)
-        credential = base64.b64encode(token_credential)
-
-        data = urllib.urlencode({'grant_type': 'client_credentials'})
-        req = urllib2.Request(TOKEN_URL)
-        req.add_header('Authorization', 'Basic ' + credential)
-        req.add_header('Content-Type', 'application/x-www-form-urlencoded;charset=UTF-8')
-
-        response = urllib2.urlopen(req, data)
-        json_response = json.loads(response.read())
-        self._access_token = json_response['access_token']
-
-    def apply_auth(self, url, method, headers, parameters):
-        headers['Authorization'] = 'Bearer ' + self._access_token
-
-
 class BaseHandler(webapp2.RequestHandler):
     def dispatch(self):
         self.session_store = sessions.get_store(request=self.request)
@@ -202,7 +177,7 @@ class Index(BaseHandler):
 
         auth = CACHE.get('auth')
         if auth is None:
-            auth = AppAuthHandler()
+            auth = tweepy.AppAuthHandler(CONSUMER_KEY, CONSUMER_SECRET)
             CACHE.store('auth', auth)
 
         api = tweepy.API(
@@ -213,9 +188,7 @@ class Index(BaseHandler):
         )
 
         tweets = []
-        results = Cursor(api.search, q=query, geocode=city['geocode'], since_id=last_id).items(limit=20)
-        # logging.error(dir(results))
-        # logging.error(results.__dict__)
+        results = tweepy.Cursor(api.search, q=query, geocode=city['geocode'], since_id=last_id).items(limit=20)
         for obj in results:
             last_id = obj.id
             item = obj.__dict__
