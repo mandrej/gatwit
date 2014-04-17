@@ -180,15 +180,10 @@ class Index(BaseHandler):
             auth = tweepy.AppAuthHandler(CONSUMER_KEY, CONSUMER_SECRET)
             CACHE.store('auth', auth)
 
-        api = tweepy.API(
-            auth,
-            retry_count=3,
-            retry_delay=5,
-            retry_errors=set([401, 404, 500, 503])
-        )
+        api = tweepy.API(auth, retry_count=3, retry_delay=5)
 
         tweets = []
-        results = tweepy.Cursor(api.search, q=query, geocode=city['geocode'], since_id=last_id).items(limit=20)
+        results = api.search(q=query, geocode=city['geocode'], since_id=last_id, count=20)
         for obj in results:
             last_id = obj.id
             item = obj.__dict__
