@@ -21,7 +21,7 @@
             </small>
         </p>
     </div>
-    {% if obj.in_reply_to_status_id and level < 4 %}
+    {% if obj.in_reply_to_status_id and level < thread_level %}
         {% set level = level + 1 %}
         {% set thread = obj.in_reply_to_status_id|get_status %}
         {% if thread %}

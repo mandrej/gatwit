@@ -101,13 +101,16 @@ def geo_location(arg):
         return location, ','.join(map(str, point))
 
 
-def get_status(id):
+def get_api():
     auth = CACHE.get('auth')
     if auth is None:
         auth = tweepy.AppAuthHandler(CONSUMER_KEY, CONSUMER_SECRET)
         CACHE.store('auth', auth)
+    return tweepy.API(auth, retry_count=3, retry_delay=5)
 
-    api = tweepy.API(auth, retry_count=3, retry_delay=5)
+
+def get_status(id):
+    api = get_api()
     try:
         status = api.get_status(id)
     except tweepy.TweepError:
@@ -161,12 +164,7 @@ class Index(BaseHandler):
         max_id = self.request.get('max_id', None)
         city = self.session.get('city', DEFAULT)
 
-        auth = CACHE.get('auth')
-        if auth is None:
-            auth = tweepy.AppAuthHandler(CONSUMER_KEY, CONSUMER_SECRET)
-            CACHE.store('auth', auth)
-
-        api = tweepy.API(auth, retry_count=3, retry_delay=5)
+        api = get_api()
         results = api.search(q=query, geocode=city['geocode'], max_id=max_id, count=20)
 
         paremeters = {}
@@ -177,6 +175,7 @@ class Index(BaseHandler):
 
         self.render_template('index.html', {
             'tweets': results,
+            'thread_level': 4,
             'query': query,
             'paremeters': urllib.urlencode(paremeters),
             'radius': RADIUS,
