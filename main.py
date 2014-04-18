@@ -22,6 +22,7 @@ CONSUMER_SECRET = 'HGsVbzsYjCDhI0Y6u2vurlvEWrFqBxZkkQAu2ASnQ'
 GV3 = geocoders.GoogleV3()
 GIP = pygeoip.GeoIP('pygeoip/GeoLiteCity.dat')
 CACHE = tweepy.MemoryCache(600)
+THREAD_LEVEL = 4
 
 DEVEL = os.environ.get('SERVER_SOFTWARE', '').startswith('Dev')
 RADIUS = '10km'
@@ -175,7 +176,7 @@ class Index(BaseHandler):
 
         self.render_template('index.html', {
             'tweets': results,
-            'thread_level': 4,
+            'thread_level': THREAD_LEVEL,
             'query': query,
             'paremeters': urllib.urlencode(paremeters),
             'radius': RADIUS,
