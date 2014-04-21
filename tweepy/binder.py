@@ -69,7 +69,7 @@ def bind_api(**config):
             # or older where Host is set including the 443 port.
             # This causes Twitter to issue 301 redirect.
             # See Issue https://github.com/tweepy/tweepy/issues/12
-            self.headers['Host'] = self.host
+            # self.headers['Host'] = self.host TODO Stripped prohibited headers from URLFetch request: ['Host']
             # Monitoring rate limits
             self._remaining_calls = None
             self._reset_time = None
