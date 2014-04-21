@@ -14,12 +14,12 @@ import tweepy
 from webapp2 import WSGIApplication
 from webapp2_extras import jinja2, sessions
 from jinja2.utils import Markup
-from geopy import geocoders
+from geopy.geocoders import GoogleV3
 
 CONSUMER_KEY = 'uvkMU4MFVn2N3lgizdFRfQ'
 CONSUMER_SECRET = 'HGsVbzsYjCDhI0Y6u2vurlvEWrFqBxZkkQAu2ASnQ'
 
-GV3 = geocoders.GoogleV3()
+GV3 = GoogleV3()
 GIP = pygeoip.GeoIP('pygeoip/GeoLiteCity.dat')
 CACHE = tweepy.MemoryCache(600)
 THREAD_LEVEL = 4
@@ -70,7 +70,7 @@ def geo_address(arg):
     """ Reverse geocoding
         Args:
             arg (dict): {u'coordinates': [20.4717135, 44.760376], u'type': u'Point'}
-            results (list): [(u'OMV pumpa, Belgrade, Serbia', (44.7605262, 20.4730118)), ...]
+            results (tuple): (u'OMV pumpa, Belgrade, Serbia', (44.7605262, 20.4730118))
 
         Returns:
             str: u'OMV pumpa, Belgrade, Serbia'
@@ -79,9 +79,8 @@ def geo_address(arg):
     coordinates = arg['coordinates']
     coordinates.reverse()
     point_str = ','.join(map(str, coordinates))
-    results = GV3.reverse(point_str, sensor=False)
-    location, point = results[0]  # first result
-    return location
+    loc = GV3.reverse(point_str, sensor=False, exactly_one=True)
+    return loc.address
 
 
 def geo_location(arg):
@@ -94,13 +93,11 @@ def geo_location(arg):
             tuple: u'\u0160abac, Serbia', '44.75423,19.699751'
 
     """
-    try:
-        results = GV3.geocode(arg, sensor=False)
-    except Exception as e:
-        return None, e.message
+    loc = GV3.geocode(arg, sensor=False, exactly_one=True)
+    if loc:
+        return loc.address, ','.join(map(str, (loc.latitude, loc.longitude)))
     else:
-        location, point = results
-        return location, ','.join(map(str, point))
+        return None, 'Geocoder nothing found'
 
 
 def get_api():
