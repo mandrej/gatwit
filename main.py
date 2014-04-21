@@ -29,6 +29,7 @@ RADIUS = '10km'
 # convert -size 48x48 xc:transparent gif:- | base64
 BLANK = 'R0lGODlhMAAwAPAAAAAAAAAAACH5BAEAAAAALAAAAAAwADAAAAIxhI+py+0Po5y02ouz3rz7D4biSJbmiabqyrbuC8fyTNf2jef6zvf+DwwKh8Si8egpAAA7'
 DEFAULT = {'name': u'Belgrade, Serbia', 'geocode': '44.8205556,20.4622222,%s' % RADIUS}
+logging.getLogger().setLevel(logging.DEBUG)
 
 
 def year():
@@ -107,7 +108,15 @@ def get_api():
     if auth is None:
         auth = tweepy.AppAuthHandler(CONSUMER_KEY, CONSUMER_SECRET)
         CACHE.store('auth', auth)
-    return tweepy.API(auth, retry_count=3, retry_delay=5)
+    api = tweepy.API(
+        auth,
+        retry_count=3,
+        retry_delay=5,
+        retry_errors=set([401, 404, 500, 503]),
+        wait_on_rate_limit=True,
+        wait_on_rate_limit_notify=True
+    )
+    return api
 
 
 def get_status(id):
@@ -192,6 +201,7 @@ class Index(BaseHandler):
                 geocode = '{0},{1}'.format('{latitude:.4f},{longitude:.4f}'.format(**record), RADIUS)
                 self.session['city'] = {'name': record['city'], 'geocode': geocode}
                 self.session.add_flash('GeoIP found %s from request.' % record['city'], level='')
+                logging.info('GeoIP found %s from request.' % record['city'])
             else:
                 self.session['city'] = DEFAULT
                 self.session.add_flash('GeoIP results incomplete.', level='error')
@@ -202,12 +212,12 @@ class Index(BaseHandler):
                 geocode = '{0},{1}'.format(coordinates, RADIUS)
                 self.session['city'] = {'name': location, 'geocode': geocode}
                 self.session.add_flash('Geocoder found %s' % location, level='')
+                logging.info('Geocoder found %s' % location)
             else:
                 self.session['city'] = DEFAULT
                 self.session.add_flash(coordinates, level='error')
                 self.session.add_flash('Using %s as default place.' % DEFAULT['name'], level='')
 
-        logging.info(self.session['city'])
         self.redirect('/')
 
 CONFIG = {
