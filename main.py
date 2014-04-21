@@ -185,8 +185,8 @@ class Index(BaseHandler):
         })
 
     def post(self):
-        location, coordinates = geo_location(self.request.get('place'))
-        if location is None:
+        new_place = self.request.get('place').strip()
+        if new_place == '':
             record = GIP.record_by_addr(self.request.remote_addr)
             if all(['latitude', 'longitude', 'city']) in record:
                 geocode = '{0},{1}'.format('{latitude:.4f},{longitude:.4f}'.format(**record), RADIUS)
@@ -194,12 +194,18 @@ class Index(BaseHandler):
                 self.session.add_flash('GeoIP found %s from request.' % record['city'], level='')
             else:
                 self.session['city'] = DEFAULT
-                self.session.add_flash(coordinates, level='error')
                 self.session.add_flash('GeoIP results incomplete.', level='error')
                 self.session.add_flash('Using %s as default place.' % DEFAULT['name'], level='')
         else:
-            self.session['city'] = {'name': location, 'geocode': '{0},{1}'.format(coordinates, RADIUS)}
-            self.session.add_flash('Geocoder found %s' % location, level='')
+            location, coordinates = geo_location(new_place)
+            if location:
+                geocode = '{0},{1}'.format(coordinates, RADIUS)
+                self.session['city'] = {'name': location, 'geocode': geocode}
+                self.session.add_flash('Geocoder found %s' % location, level='')
+            else:
+                self.session['city'] = DEFAULT
+                self.session.add_flash(coordinates, level='error')
+                self.session.add_flash('Using %s as default place.' % DEFAULT['name'], level='')
         self.redirect('/')
 
 CONFIG = {
