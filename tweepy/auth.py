@@ -6,6 +6,7 @@ from urllib2 import Request, urlopen
 import urllib
 import base64
 import json
+
 from tweepy import oauth
 from tweepy.error import TweepError
 from tweepy.api import API
@@ -179,6 +180,7 @@ class AppAuthHandler(AuthHandler):
         json_response = json.loads(response.read())
         self._access_token = json_response['access_token']
 
+
     def _get_oauth_url(self, endpoint, secure=True):
         if self.secure or secure:
             prefix = 'https://'
@@ -186,6 +188,7 @@ class AppAuthHandler(AuthHandler):
             prefix = 'http://'
 
         return prefix + self.OAUTH_HOST + self.OAUTH_ROOT + endpoint
+
 
     def apply_auth(self, url, method, headers, parameters):
         headers['Authorization'] = 'Bearer ' + self._access_token

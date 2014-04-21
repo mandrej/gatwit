@@ -206,6 +206,8 @@ class Index(BaseHandler):
                 self.session['city'] = DEFAULT
                 self.session.add_flash(coordinates, level='error')
                 self.session.add_flash('Using %s as default place.' % DEFAULT['name'], level='')
+
+        logging.info(self.session['city'])
         self.redirect('/')
 
 CONFIG = {
