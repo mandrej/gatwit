@@ -176,7 +176,7 @@ class Index(BaseHandler):
 
         paremeters = {}
         if query != '':
-            paremeters['query'] = query
+            paremeters['query'] = query.encode('utf-8')
         if results.max_id:
             paremeters['max_id'] = results.max_id
 
