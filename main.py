@@ -167,24 +167,24 @@ class BaseHandler(webapp2.RequestHandler):
 
 class Index(BaseHandler):
     def get(self):
-        query = self.request.get('q', '')
-        max_id = self.request.get('max_id', None)
+        params = dict(self.request.GET)
+        query = params.get('q', '')
+        max_id = params.get('max_id', 0)
         city = self.session.get('city', DEFAULT)
 
         api = get_api()
         results = api.search(q=query, geocode=city['geocode'], max_id=max_id, count=20)
 
-        paremeters = {}
         if query != '':
-            paremeters['q'] = query.encode('utf-8')
+            params['q'] = query.encode('utf-8')
         if results.max_id:
-            paremeters['max_id'] = results.max_id
+            params['max_id'] = results.max_id
 
         self.render_template('index.html', {
             'tweets': results,
             'thread_level': THREAD_LEVEL,
             'query': query,
-            'paremeters': urllib.urlencode(paremeters),
+            'params': urllib.urlencode(params),
             'radius': RADIUS,
             'flashes': self.session.get_flashes(),
             'blank': 'data:image/gif;base64,%s' % BLANK
