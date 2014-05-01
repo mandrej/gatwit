@@ -35,6 +35,15 @@
             <h1><a href="/">LINE</a></h1>
         </header>
         <article id="main">
+            <h1>
+                {% if query %}
+                    Search results for "{{ query }}" from {{ city.name }}
+                {% elif name %}
+                    Tweets posted by @{{ name }}
+                {% else %}
+                    Tweets from {{ city.name }}
+                {% endif %}
+            </h1>
             {% block content %}{% endblock %}
         </article>
     </div>

@@ -165,7 +165,7 @@ class BaseHandler(webapp2.RequestHandler):
         self.response.write(self.jinja2.render_template(filename, **kwargs))
 
 
-class Index(BaseHandler):
+class Search(BaseHandler):
     def get(self):
         params = dict(self.request.GET)
         query = params.get('q', '')
@@ -217,6 +217,30 @@ class Index(BaseHandler):
 
         self.redirect('/')
 
+
+class TimeLine(BaseHandler):
+    def get(self, name):
+        params = dict(self.request.GET)
+        max_id = params.get('max_id', 0)
+
+        api = get_api()
+        results = api.user_timeline(screen_name=name, max_id=max_id, count=20)
+
+        if results.max_id:
+            params['max_id'] = results.max_id
+
+        self.render_template('index.html', {
+            'tweets': results,
+            'thread_level': THREAD_LEVEL,
+            'query': '',
+            'name': name,
+            'params': urllib.urlencode(params),
+            'radius': RADIUS,
+            'flashes': self.session.get_flashes(),
+            'blank': 'data:image/gif;base64,%s' % BLANK
+        })
+
+
 CONFIG = {
     'webapp2_extras.jinja2': {
         'globals': {
@@ -237,5 +261,6 @@ CONFIG = {
 }
 # < /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c${1:-32};echo;
 app = WSGIApplication([
-    (r'/', Index),
+    webapp2.Route(r'/', handler=Search),
+    webapp2.Route(r'/timeline/<name:\w+>', handler=TimeLine),
 ], config=CONFIG, debug=DEVEL)

@@ -2,11 +2,11 @@
 
 {% macro render_tweet(obj, level=0) %}
     <div id="{{ obj.id }}" class="tweet" style="margin-left: {{ '%spx' % (32 * level) }}">
-        <a href="https://twitter.com/{{ obj.user.screen_name }}" target="_blank">
+        <a href="/timeline/{{ obj.user.screen_name }}?max_id={{ obj.id }}">
             <img src="{{ blank }}" style="background: url({{ obj.user.profile_image_url }})">
         </a>
         <p>
-            <a class="twit" href="https://twitter.com/{{ obj.user.screen_name }}" target="_blank">
+            <a class="twit" href="https://twitter.com/{{ obj.user.screen_name }}">
                 @{{ obj.user.screen_name|default }}
             </a>
             <small>
@@ -16,13 +16,11 @@
             <br>
             <span>{{ obj.text|twitterize|urlize }}</span>
             <br>
-            <small>
-                {{ obj.created_at|timesince }}, {{ obj.source }}, {{ obj.user.location }}
-            </small>
+            <small>{{ obj.created_at|timesince }}, {{ obj.source }}, {{ obj.user.location }}</small>
         </p>
     </div>
+    {% set level = level + 1 %}
     {% if obj.in_reply_to_status_id and level < thread_level %}
-        {% set level = level + 1 %}
         {% set thread = obj.in_reply_to_status_id|get_status %}
         {% if thread %}
             {{ render_tweet(thread, level) }}
@@ -33,7 +31,10 @@
 {% block content %}
     {% for obj in tweets %}
         {{ render_tweet(obj) }}
+        {% if obj.retweeted_status %}
+            {{ render_tweet(obj.retweeted_status, 1) }}
+        {% endif %}
     {% else %}
-        <p class="noresults">No search results</p>
+        <p class="noresults">No results</p>
     {% endfor %}
 {% endblock %}
