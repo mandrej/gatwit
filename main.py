@@ -169,14 +169,13 @@ class Search(BaseHandler):
     def get(self):
         params = dict(self.request.GET)
         query = params.get('q', '')
-        max_id = params.get('max_id', 0)
+        max_id = params.get('max_id')
         city = self.session.get('city', DEFAULT)
 
         api = get_api()
         results = api.search(q=query, geocode=city['geocode'], max_id=max_id, count=20)
 
-        if query != '':
-            params['q'] = query.encode('utf-8')
+        params['q'] = query.encode('utf-8')
         if results.max_id:
             params['max_id'] = results.max_id
 
@@ -221,7 +220,7 @@ class Search(BaseHandler):
 class TimeLine(BaseHandler):
     def get(self, name):
         params = dict(self.request.GET)
-        max_id = params.get('max_id', 0)
+        max_id = params.get('max_id')
 
         api = get_api()
         results = api.user_timeline(screen_name=name, max_id=max_id, count=20)
@@ -232,7 +231,6 @@ class TimeLine(BaseHandler):
         self.render_template('index.html', {
             'tweets': results,
             'thread_level': THREAD_LEVEL,
-            'query': '',
             'name': name,
             'params': urllib.urlencode(params),
             'radius': RADIUS,
