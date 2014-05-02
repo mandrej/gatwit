@@ -32,14 +32,14 @@
             <a href="#main-nav" class="fa fa-bars pull-left open"></a>
             <a href="#" class="fa fa-bars pull-left close"></a>
             <a href="?{{ params }}" class="fa fa-chevron-circle-down pull-right"></a>
-            <h1><a href="/">LINE</a></h1>
+            <h1><a href="/"><i class="fa fa-twitter"></i> LINE</a></h1>
         </header>
         <article id="main">
             <h1>
                 {% if query %}
                     Search results for "{{ query }}" from {{ city.name }}
                 {% elif name %}
-                    Tweets posted by @{{ name }}
+                    Tweets from @{{ name }}
                 {% else %}
                     Tweets from {{ city.name }}
                 {% endif %}
