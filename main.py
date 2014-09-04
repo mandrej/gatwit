@@ -104,18 +104,26 @@ def geo_location(arg):
 
 
 def get_api():
-    auth = CACHE.get('auth')
-    if auth is None:
+    """
+    auth._access_token
+
+    https://dev.twitter.com/docs/auth/oauth/faq
+    We do not currently expire access tokens. Your access token will be invalid if a user explicitly rejects
+    your application from their settings or if a Twitter admin suspends your application. If your application
+    is suspended there will be a note on your application page saying that it has been suspended.
+    """
+    api = CACHE.get('api')
+    if api is None:
         auth = tweepy.AppAuthHandler(CONSUMER_KEY, CONSUMER_SECRET)
-        CACHE.store('auth', auth)
-    api = tweepy.API(
-        auth,
-        retry_count=3,
-        retry_delay=5,
-        retry_errors=set([401, 404, 500, 503]),
-        wait_on_rate_limit=True,
-        wait_on_rate_limit_notify=True
-    )
+        api = tweepy.API(
+            auth,
+            retry_count=3,
+            retry_delay=5,
+            retry_errors=set([401, 404, 500, 503]),
+            wait_on_rate_limit=True,
+            wait_on_rate_limit_notify=True
+        )
+        CACHE.store('api', api)
     return api
 
 
