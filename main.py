@@ -14,6 +14,7 @@ import tweepy
 from webapp2 import WSGIApplication
 from webapp2_extras import jinja2, sessions
 from google.appengine import runtime
+from google.appengine.runtime import apiproxy_errors
 from google.appengine.api import urlfetch_errors
 from jinja2.utils import Markup
 from geopy.geocoders import GoogleV3
@@ -122,9 +123,9 @@ def get_status(id):
     api = get_api()
     try:
         status = api.get_status(id)
-    except (urlfetch_errors.DeadlineExceededError,
-            runtime.DeadlineExceededError,
-            runtime.apiproxy_errors.DeadlineExceededError,
+    except (runtime.DeadlineExceededError,
+            apiproxy_errors.DeadlineExceededError,
+            urlfetch_errors.DeadlineExceededError,
             tweepy.TweepError) as e:
         """
         [{u'code': 179, u'message': u'Sorry, you are not authorized to see this status.'}]
