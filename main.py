@@ -173,6 +173,8 @@ class BaseHandler(webapp2.RequestHandler):
                 data['error'] = '{code}: {message}'.format(**exception[0][0])
             except TypeError:
                 data['error'] = exception.reason
+        elif isinstance(exception, (runtime.DeadlineExceededError, apiproxy_errors.DeadlineExceededError, urlfetch_errors.DeadlineExceededError,)):
+            data['error'] = exception.message
         else:
             data['error'] = exception
             data['lines'] = ''.join(traceback.format_exception(*sys.exc_info()))
