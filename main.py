@@ -136,11 +136,10 @@ def get_status(id):
             urlfetch_errors.DeadlineExceededError,
             tweepy.TweepError) as e:
         """
-        [{u'code': 179, u'message': u'Sorry, you are not authorized to see this status.'}]
+        tweepy.TweepError: [{u'code': 179, u'message': u'Sorry, you are not authorized to see this status.'}]
         Corresponds with HTTP 403 — thrown when a Tweet cannot be viewed by the authenticating user,
         usually due to the tweet's author having protected their tweets.
         """
-        logging.warning(e)
         return None
     return status
 
@@ -173,8 +172,6 @@ class BaseHandler(webapp2.RequestHandler):
                 data['error'] = '{code}: {message}'.format(**exception[0][0])
             except TypeError:
                 data['error'] = exception.reason
-        elif isinstance(exception, (runtime.DeadlineExceededError, apiproxy_errors.DeadlineExceededError, urlfetch_errors.DeadlineExceededError,)):
-            data['error'] = exception.message
         else:
             data['error'] = exception
             data['lines'] = ''.join(traceback.format_exception(*sys.exc_info()))
@@ -196,6 +193,7 @@ class Search(BaseHandler):
 
         api = get_api()
         results = api.search(q=query, geocode=city['geocode'], max_id=max_id, count=20)
+        logging.error(results.__dict__)
 
         params['q'] = query.encode('utf-8')
         if results.max_id:
