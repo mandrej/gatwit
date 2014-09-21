@@ -17,6 +17,7 @@ from google.appengine import runtime
 from google.appengine.runtime import apiproxy_errors
 from google.appengine.api import urlfetch_errors
 from jinja2.utils import Markup
+from timeit import default_timer as timer
 from geopy.geocoders import GoogleV3
 
 CONSUMER_KEY = 'uvkMU4MFVn2N3lgizdFRfQ'
@@ -24,7 +25,7 @@ CONSUMER_SECRET = 'HGsVbzsYjCDhI0Y6u2vurlvEWrFqBxZkkQAu2ASnQ'
 
 GV3 = GoogleV3()
 GIP = pygeoip.GeoIP('pygeoip/GeoLiteCity.dat')
-CACHE = tweepy.MemoryCache(600)
+CACHE = tweepy.MemoryCache(3600)
 THREAD_LEVEL = 4
 
 DEVEL = os.environ.get('SERVER_SOFTWARE', '').startswith('Dev')
@@ -33,6 +34,16 @@ RADIUS = '10km'
 BLANK = 'R0lGODlhMAAwAPAAAAAAAAAAACH5BAEAAAAALAAAAAAwADAAAAIxhI+py+0Po5y02ouz3rz7D4biSJbmiabqyrbuC8fyTNf2jef6zvf+DwwKh8Si8egpAAA7'
 DEFAULT = {'name': u'Belgrade, Serbia', 'geocode': '44.8205556,20.4622222,%s' % RADIUS}
 logging.getLogger().setLevel(logging.DEBUG)
+
+
+def timeit(f):
+    def wrapper(*args, **kw):
+        start = timer()
+        result = f(*args, **kw)
+        end = timer()
+        logging.info('func:%r args:[%r, %r] took: %2.4f sec' % (f.__name__, args, kw, end - start))
+        return result
+    return wrapper
 
 
 def year():
@@ -193,7 +204,6 @@ class Search(BaseHandler):
 
         api = get_api()
         results = api.search(q=query, geocode=city['geocode'], max_id=max_id, count=20)
-        logging.error(results.__dict__)
 
         params['q'] = query.encode('utf-8')
         if results.max_id:
@@ -213,7 +223,7 @@ class Search(BaseHandler):
         new_place = self.request.get('place').strip()
         if new_place == '':
             record = GIP.record_by_addr(self.request.remote_addr)
-            if all(['latitude', 'longitude', 'city']) in record:
+            if record and all(['latitude', 'longitude', 'city']) in record:
                 geocode = '{0},{1}'.format('{latitude:.4f},{longitude:.4f}'.format(**record), RADIUS)
                 self.session['city'] = {'name': record['city'], 'geocode': geocode}
                 self.session.add_flash('GeoIP found %s from request.' % record['city'], level='')
