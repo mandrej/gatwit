@@ -3,11 +3,7 @@ __author__ = 'milan'
 import unittest
 import tweepy
 from timer import Timer
-
-RADIUS = '10km'
-CONSUMER_KEY = 'uvkMU4MFVn2N3lgizdFRfQ'
-CONSUMER_SECRET = 'HGsVbzsYjCDhI0Y6u2vurlvEWrFqBxZkkQAu2ASnQ'
-DEFAULT = {'name': u'Belgrade, Serbia', 'geocode': '44.8205556,20.4622222,%s' % RADIUS}
+from config import CONSUMER_KEY, CONSUMER_SECRET, RADIUS, DEFAULT
 CACHE = tweepy.MemoryCache(600)
 
 

@@ -19,20 +19,15 @@ from google.appengine.api import urlfetch_errors
 from jinja2.utils import Markup
 from timeit import default_timer as timer
 from geopy.geocoders import GoogleV3
-
-CONSUMER_KEY = 'uvkMU4MFVn2N3lgizdFRfQ'
-CONSUMER_SECRET = 'HGsVbzsYjCDhI0Y6u2vurlvEWrFqBxZkkQAu2ASnQ'
+from config import CONSUMER_KEY, CONSUMER_SECRET, RADIUS, DEFAULT, THREAD_LEVEL
 
 GV3 = GoogleV3()
 GIP = pygeoip.GeoIP('pygeoip/GeoLiteCity.dat', flags=pygeoip.MEMORY_CACHE)
 CACHE = tweepy.MemoryCache(3600)
-THREAD_LEVEL = 4
-
 DEVEL = os.environ.get('SERVER_SOFTWARE', '').startswith('Dev')
-RADIUS = '10km'
+
 # convert -size 48x48 xc:transparent gif:- | base64
 BLANK = 'R0lGODlhMAAwAPAAAAAAAAAAACH5BAEAAAAALAAAAAAwADAAAAIxhI+py+0Po5y02ouz3rz7D4biSJbmiabqyrbuC8fyTNf2jef6zvf+DwwKh8Si8egpAAA7'
-DEFAULT = {'name': u'Belgrade, Serbia', 'geocode': '44.8205556,20.4622222,%s' % RADIUS}
 logging.getLogger().setLevel(logging.DEBUG)
 
 
