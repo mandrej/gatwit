@@ -24,7 +24,7 @@ CONSUMER_KEY = 'uvkMU4MFVn2N3lgizdFRfQ'
 CONSUMER_SECRET = 'HGsVbzsYjCDhI0Y6u2vurlvEWrFqBxZkkQAu2ASnQ'
 
 GV3 = GoogleV3()
-GIP = pygeoip.GeoIP('pygeoip/GeoLiteCity.dat')
+GIP = pygeoip.GeoIP('pygeoip/GeoLiteCity.dat', flags=pygeoip.MEMORY_CACHE)
 CACHE = tweepy.MemoryCache(3600)
 THREAD_LEVEL = 4
 
