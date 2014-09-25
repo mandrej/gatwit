@@ -51,9 +51,9 @@ def twitterize(text):
     twit_link = re.compile(r'@(\w+)', re.IGNORECASE)
     hash_link = re.compile(r'#(\w+)', re.IGNORECASE)
     if twit_link.search(text):
-        text = twit_link.sub(r'<a class="twit" href="https://twitter.com/\1" target="_blank">@\1</a>', text)
+        text = twit_link.sub(r'<a class="twit" href="http://twitter.com/\1" target="_blank">@\1</a>', text)
     if hash_link.search(text):
-        text = hash_link.sub(r'<a class="hash" href="https://twitter.com/search?q=%23\1&src=hash" target="_blank">#\1</a>', text)
+        text = hash_link.sub(r'<a class="hash" href="http://twitter.com/search?q=%23\1&src=hash" target="_blank">#\1</a>', text)
     return Markup(text)
 
 
