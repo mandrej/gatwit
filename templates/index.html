@@ -31,9 +31,9 @@
 {% block content %}
     {% for obj in tweets %}
         {{ render_tweet(obj) }}
-        {% if obj.retweeted_status %}
-            {{ render_tweet(obj.retweeted_status, 1) }}
-        {% endif %}
+{#        {% if obj.retweeted_status %}#}
+{#            {{ render_tweet(obj.retweeted_status, 1) }}#}
+{#        {% endif %}#}
     {% else %}
         <p class="noresults">No results</p>
     {% endfor %}
