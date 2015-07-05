@@ -134,6 +134,11 @@ def get_api():
 
 
 def get_status(id):
+    """
+    tweepy.TweepError: [{u'code': 179, u'message': u'Sorry, you are not authorized to see this status.'}]
+    Corresponds with HTTP 403 - thrown when a Tweet cannot be viewed by the authenticating user,
+    usually due to the tweet's author having protected their tweets.
+    """
     api = get_api()
     try:
         status = api.get_status(id)
@@ -141,11 +146,6 @@ def get_status(id):
             apiproxy_errors.DeadlineExceededError,
             urlfetch_errors.DeadlineExceededError,
             tweepy.TweepError) as e:
-        """
-        tweepy.TweepError: [{u'code': 179, u'message': u'Sorry, you are not authorized to see this status.'}]
-        Corresponds with HTTP 403 — thrown when a Tweet cannot be viewed by the authenticating user,
-        usually due to the tweet's author having protected their tweets.
-        """
         return None
     return status
 
