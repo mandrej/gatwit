@@ -1,5 +1,3 @@
-__author__ = 'milan'
-
 import unittest
 from timer import Timer
 from geopy.distance import vincenty

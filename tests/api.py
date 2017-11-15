@@ -1,5 +1,3 @@
-__author__ = 'milan'
-
 import unittest
 import tweepy
 from timer import Timer

@@ -26,6 +26,9 @@ libraries:
 - name: ssl
   version: latest
 
+env_variables:
+  PYTHONHTTPSVERIFY: 1
+
 error_handlers:
 - file: templates/default_error.html
 

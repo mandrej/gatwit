@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-__author__ = 'milan'
 
 import re
 import unittest

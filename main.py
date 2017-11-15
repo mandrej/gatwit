@@ -1,4 +1,3 @@
-__author__ = 'milan'
 # -*- coding: utf-8 -*-
 
 import os
